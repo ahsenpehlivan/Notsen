@@ -4,7 +4,8 @@ import {
   DragOverlay,
   closestCorners,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   DragStartEvent,
@@ -15,14 +16,17 @@ import { SortableContext, arrayMove, sortableKeyboardCoordinates } from '@dnd-ki
 import { useBoardStore, Task } from '@/store/useBoardStore';
 import BoardColumn from './BoardColumn';
 import BoardCard from './BoardCard';
-import { Plus, Settings2 } from 'lucide-react';
+import { Plus, Settings2, Menu, UserPlus } from 'lucide-react';
 import styles from './Board.module.css';
 import CardModal from './CardModal';
 import ColumnReorderModal from './ColumnReorderModal';
 import InviteModal from './InviteModal';
-import { UserPlus } from 'lucide-react';
 
-export default function KanbanBoard() {
+interface KanbanBoardProps {
+  onOpenMenu?: () => void;
+}
+
+export default function KanbanBoard({ onOpenMenu }: KanbanBoardProps = {}) {
   const { activeBoardId, boards, columns, tasks, setColumns, setTasks, addColumn, currentUserRole } = useBoardStore();
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -32,9 +36,14 @@ export default function KanbanBoard() {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: {
-        distance: 5, // 5px hareket etmeden sürükleme başlamaz, tıklamaları engellememek için
+        distance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        distance: 5,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -134,6 +143,11 @@ export default function KanbanBoard() {
   if (!activeBoardId || !activeBoard) {
     return (
       <div className={styles.boardContainer} style={{ alignItems: 'center', justifyContent: 'center' }}>
+        {onOpenMenu && (
+          <button className={styles.menuBtn} onClick={onOpenMenu} style={{ position: 'absolute', top: '1.25rem', left: '1.25rem' }}>
+            <Menu size={24} />
+          </button>
+        )}
         <h2 style={{ color: 'var(--text-muted)' }}>Lütfen yandaki menüden bir pano seçin veya yeni pano oluşturun.</h2>
       </div>
     );
@@ -142,14 +156,21 @@ export default function KanbanBoard() {
   return (
     <div className={styles.boardContainer}>
       <header className={styles.boardHeader}>
-        <h2>{activeBoard.title}</h2>
+        <div className={styles.boardHeaderLeft}>
+          {onOpenMenu && (
+            <button className={styles.menuBtn} onClick={onOpenMenu}>
+              <Menu size={20} />
+            </button>
+          )}
+          <h2>{activeBoard.title}</h2>
+        </div>
         <div className={styles.headerActions}>
           <button 
             className={styles.addCardBtn} 
             style={{ width: 'auto', padding: '0.5rem 1rem', background: 'var(--accent-subtle)', color: 'var(--accent-hover)' }}
             onClick={() => setIsInviteModalOpen(true)}
           >
-            <UserPlus size={16} /> Paylaş
+            <UserPlus size={16} /> <span>Paylaş</span>
           </button>
           {!isViewer && (
             <button 
@@ -157,7 +178,7 @@ export default function KanbanBoard() {
               style={{ width: 'auto', padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.05)' }}
               onClick={() => setIsReorderingColumns(true)}
             >
-              <Settings2 size={16} /> Sütunları Düzenle
+              <Settings2 size={16} /> <span>Sütunları Düzenle</span>
             </button>
           )}
         </div>

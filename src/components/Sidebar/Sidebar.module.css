@@ -334,3 +334,43 @@
 }
 
 .logoutBtn:hover { color: var(--danger); }
+
+/* ── Mobile Sidebar Drawer ───────────────────────────────── */
+.sidebarOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-normal);
+}
+
+.overlayActive {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: -100%;
+    height: 100vh;
+    z-index: 101;
+    width: 280px;
+    max-width: 85vw;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+  }
+
+  .sidebarOpen {
+    left: 0;
+  }
+
+  .sidebarOverlay {
+    display: block;
+  }
+}

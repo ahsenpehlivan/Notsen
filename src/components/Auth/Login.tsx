@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { useAuthStore } from '@/store/useAuthStore';
 import { LogIn, UserPlus } from 'lucide-react';
 import styles from './Login.module.css';
@@ -51,10 +52,7 @@ export default function Login() {
       <div className={styles.card}>
         <div className={styles.header}>
           <div className={styles.logo}>
-            {mode === 'signin'
-              ? <LogIn size={28} className={styles.icon} />
-              : <UserPlus size={28} className={styles.icon} />
-            }
+            <Image src="/icon.png" alt="Notsen Logo" width={48} height={48} style={{ borderRadius: '10px' }} />
           </div>
           <h1>Notsen</h1>
           <p>Notlarını yönet, fikirlerini organize et.</p>

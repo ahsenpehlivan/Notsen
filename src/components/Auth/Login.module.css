@@ -280,3 +280,22 @@
   text-underline-offset: 2px;
   font-size: inherit;
 }
+
+/* ── Mobile specific ───────────────────────────────────────── */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+  
+  .card {
+    padding: 1.5rem;
+  }
+  
+  .header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .submitBtn {
+    padding: 0.75rem;
+  }
+}

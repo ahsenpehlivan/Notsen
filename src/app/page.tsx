@@ -13,6 +13,7 @@ import styles from './page.module.css';
 export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [activePage, setActivePage] = useState<'boards' | 'profile'>('boards');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { user, setUser } = useAuthStore();
   const { theme, loadUserData } = useBoardStore();
 
@@ -58,8 +59,20 @@ export default function Home() {
 
   return (
     <main className={styles.mainAppContainer}>
-      <Sidebar activePage={activePage} onPageChange={setActivePage} />
-      {activePage === 'boards' ? <KanbanBoard /> : <ProfilePage />}
+      <Sidebar 
+        activePage={activePage} 
+        onPageChange={(page) => {
+          setActivePage(page);
+          setIsSidebarOpen(false); // mobilde sayfa değişince menüyü kapat
+        }} 
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
+      {activePage === 'boards' ? (
+        <KanbanBoard onOpenMenu={() => setIsSidebarOpen(true)} />
+      ) : (
+        <ProfilePage onOpenMenu={() => setIsSidebarOpen(true)} />
+      )}
     </main>
   );
 }

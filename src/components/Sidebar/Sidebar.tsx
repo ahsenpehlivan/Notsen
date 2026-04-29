@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { useBoardStore } from '@/store/useBoardStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Plus, LayoutDashboard, Trash2, Sun, Moon, LogOut, UserCircle } from 'lucide-react';
@@ -7,9 +8,11 @@ import styles from './Sidebar.module.css';
 interface SidebarProps {
   activePage: 'boards' | 'profile';
   onPageChange: (page: 'boards' | 'profile') => void;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-export default function Sidebar({ activePage, onPageChange }: SidebarProps) {
+export default function Sidebar({ activePage, onPageChange, isOpen, onClose }: SidebarProps) {
   const { boards, activeBoardId, addBoard, deleteBoard, setActiveBoard, theme, setTheme } = useBoardStore();
   const { user, logout } = useAuthStore();
   const [isAdding, setIsAdding] = useState(false);
@@ -31,10 +34,15 @@ export default function Sidebar({ activePage, onPageChange }: SidebarProps) {
   };
 
   return (
-    <aside className={styles.sidebar}>
+    <>
+      <div 
+        className={`${styles.sidebarOverlay} ${isOpen ? styles.overlayActive : ''}`} 
+        onClick={onClose} 
+      />
+      <aside className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ''}`}>
       <div className={styles.header}>
         <div className={styles.logo}>
-          <div className={styles.logoIcon}>N</div>
+          <Image src="/icon.png" alt="Notsen Logo" width={28} height={28} style={{ borderRadius: '6px' }} />
           <h1>Notsen</h1>
         </div>
       </div>
@@ -134,5 +142,6 @@ export default function Sidebar({ activePage, onPageChange }: SidebarProps) {
         </div>
       </div>
     </aside>
+    </>
   );
 }

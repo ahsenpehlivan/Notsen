@@ -56,7 +56,7 @@ export default function InviteModal({ boardId, onClose }: InviteModalProps) {
                 Kullanıcıları e-posta adresleriyle davet edin ve yetkilerini belirleyin.
               </p>
               <form onSubmit={handleInvite} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <input 
                     type="email" 
                     value={email} 

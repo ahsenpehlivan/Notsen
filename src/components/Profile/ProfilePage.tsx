@@ -2,10 +2,14 @@
 
 import { useAuthStore } from '@/store/useAuthStore';
 import { useBoardStore } from '@/store/useBoardStore';
-import { User, Shield, BarChart3, Calendar, Mail, AlertTriangle } from 'lucide-react';
+import { User, Shield, BarChart3, Calendar, Mail, AlertTriangle, Menu } from 'lucide-react';
 import styles from './Profile.module.css';
 
-export default function ProfilePage() {
+interface ProfilePageProps {
+  onOpenMenu?: () => void;
+}
+
+export default function ProfilePage({ onOpenMenu }: ProfilePageProps = {}) {
   const { user, logout, linkGoogle, linkGitHub } = useAuthStore();
   const { boards, columns, tasks } = useBoardStore();
 
@@ -41,7 +45,14 @@ export default function ProfilePage() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1>Profilim</h1>
+        <div className={styles.headerTop}>
+          {onOpenMenu && (
+            <button className={styles.menuBtn} onClick={onOpenMenu}>
+              <Menu size={20} />
+            </button>
+          )}
+          <h1>Profilim</h1>
+        </div>
         <p>Hesap bilgilerinizi ve istatistiklerinizi buradan görüntüleyebilirsiniz.</p>
       </div>
 
