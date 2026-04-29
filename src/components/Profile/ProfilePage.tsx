@@ -28,6 +28,10 @@ export default function ProfilePage() {
 
   const initials = user.email?.charAt(0).toUpperCase() ?? '?';
 
+  const identities = user.identities || [];
+  const hasGoogle = identities.some(i => i.provider === 'google');
+  const hasGitHub = identities.some(i => i.provider === 'github');
+
   const handleDeleteAccount = async () => {
     if (window.confirm('Hesabınızı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) {
       await logout();
@@ -135,12 +139,25 @@ export default function ProfilePage() {
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
               Mevcut e-posta hesabınıza sosyal hesaplarınızı bağlayarak alternatif giriş yöntemleri ekleyebilirsiniz.
             </p>
-            <button className={styles.secondaryBtn} onClick={linkGoogle}>
-              Google Hesabını Bağla
-            </button>
-            <button className={styles.secondaryBtn} onClick={linkGitHub}>
-              GitHub Hesabını Bağla
-            </button>
+            {hasGoogle ? (
+              <button className={styles.secondaryBtn} disabled style={{ opacity: 0.6, cursor: 'default' }}>
+                ✓ Google Hesabı Bağlı
+              </button>
+            ) : (
+              <button className={styles.secondaryBtn} onClick={linkGoogle}>
+                Google Hesabını Bağla
+              </button>
+            )}
+
+            {hasGitHub ? (
+              <button className={styles.secondaryBtn} disabled style={{ opacity: 0.6, cursor: 'default' }}>
+                ✓ GitHub Hesabı Bağlı
+              </button>
+            ) : (
+              <button className={styles.secondaryBtn} onClick={linkGitHub}>
+                GitHub Hesabını Bağla
+              </button>
+            )}
           </div>
         </div>
 

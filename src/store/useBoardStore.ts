@@ -182,7 +182,11 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       .select()
       .single();
 
-    if (error || !data) return;
+    if (error || !data) {
+      console.error('Pano eklenirken hata oluştu:', error);
+      alert('Pano oluşturulamadı: ' + (error?.message || 'Bilinmeyen bir hata oluştu. Lütfen RLS (Veritabanı Güvenlik) kurallarını kontrol edin.'));
+      return;
+    }
 
     const newBoard: Board = { id: data.id, title: data.title, user_id: data.user_id };
 

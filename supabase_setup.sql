@@ -30,9 +30,20 @@ CREATE POLICY "Davetli kullanici uyeligi gorebilir" ON public.board_members
     user_email = (SELECT email FROM auth.users WHERE id = auth.uid())
   );
 
--- 5. Davet edilen kullanıcılar, panoyu görebilir ve düzenleyebilir
-CREATE POLICY "Davetliler paylasilan panoyu gorebilir ve silebilir" ON public.boards
-  FOR ALL
+-- 5. Davet edilen kullanıcılar, panoyu görebilir
+CREATE POLICY "Davetliler paylasilan panoyu gorebilir" ON public.boards
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.board_members bm
+      WHERE bm.board_id = boards.id 
+      AND bm.user_email = (SELECT email FROM auth.users WHERE id = auth.uid())
+    )
+  );
+
+-- Davet edilen kullanıcılar, panoyu silebilir veya güncelleyebilir (İsteğe bağlı)
+CREATE POLICY "Davetliler paylasilan panoyu duzenleyebilir" ON public.boards
+  FOR UPDATE
   USING (
     EXISTS (
       SELECT 1 FROM public.board_members bm
