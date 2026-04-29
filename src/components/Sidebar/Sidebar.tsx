@@ -34,8 +34,8 @@ export default function Sidebar({ activePage, onPageChange }: SidebarProps) {
     <aside className={styles.sidebar}>
       <div className={styles.header}>
         <div className={styles.logo}>
-          <div className={styles.logoIcon}>TF</div>
-          <h1>TaskFlow</h1>
+          <div className={styles.logoIcon}>N</div>
+          <h1>Notsen</h1>
         </div>
       </div>
 

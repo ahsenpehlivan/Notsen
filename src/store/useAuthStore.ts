@@ -10,6 +10,8 @@ interface AuthState {
   signIn: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signInWithGitHub: () => Promise<void>;
+  linkGoogle: () => Promise<void>;
+  linkGitHub: () => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
   clearError: () => void;
@@ -54,6 +56,20 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   signInWithGitHub: async () => {
     await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: { redirectTo: window.location.origin }
+    });
+  },
+
+  linkGoogle: async () => {
+    await supabase.auth.linkIdentity({
+      provider: 'google',
+      options: { redirectTo: window.location.origin }
+    });
+  },
+
+  linkGitHub: async () => {
+    await supabase.auth.linkIdentity({
       provider: 'github',
       options: { redirectTo: window.location.origin }
     });

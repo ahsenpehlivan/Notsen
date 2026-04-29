@@ -19,6 +19,8 @@ import { Plus, Settings2 } from 'lucide-react';
 import styles from './Board.module.css';
 import CardModal from './CardModal';
 import ColumnReorderModal from './ColumnReorderModal';
+import InviteModal from './InviteModal';
+import { UserPlus } from 'lucide-react';
 
 export default function KanbanBoard() {
   const { activeBoardId, boards, columns, tasks, setColumns, setTasks, addColumn } = useBoardStore();
@@ -27,6 +29,7 @@ export default function KanbanBoard() {
   const [newColumnTitle, setNewColumnTitle] = useState('');
   const [isAddingColumn, setIsAddingColumn] = useState(false);
   const [isReorderingColumns, setIsReorderingColumns] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -137,13 +140,22 @@ export default function KanbanBoard() {
     <div className={styles.boardContainer}>
       <header className={styles.boardHeader}>
         <h2>{activeBoard.title}</h2>
-        <button 
-          className={styles.addCardBtn} 
-          style={{ width: 'auto', padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.05)' }}
-          onClick={() => setIsReorderingColumns(true)}
-        >
-          <Settings2 size={16} /> Sütunları Düzenle
-        </button>
+        <div className={styles.headerActions}>
+          <button 
+            className={styles.addCardBtn} 
+            style={{ width: 'auto', padding: '0.5rem 1rem', background: 'var(--accent-subtle)', color: 'var(--accent-hover)' }}
+            onClick={() => setIsInviteModalOpen(true)}
+          >
+            <UserPlus size={16} /> Paylaş
+          </button>
+          <button 
+            className={styles.addCardBtn} 
+            style={{ width: 'auto', padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.05)' }}
+            onClick={() => setIsReorderingColumns(true)}
+          >
+            <Settings2 size={16} /> Sütunları Düzenle
+          </button>
+        </div>
       </header>
 
       <main className={styles.boardScrollable}>
@@ -213,6 +225,13 @@ export default function KanbanBoard() {
         <ColumnReorderModal
           boardId={activeBoardId}
           onClose={() => setIsReorderingColumns(false)}
+        />
+      )}
+
+      {isInviteModalOpen && (
+        <InviteModal
+          boardId={activeBoardId}
+          onClose={() => setIsInviteModalOpen(false)}
         />
       )}
     </div>

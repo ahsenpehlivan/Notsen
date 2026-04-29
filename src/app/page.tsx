@@ -23,7 +23,7 @@ export default function Home() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        loadUserData(session.user.id);
+        loadUserData(session.user.id, session.user.email || '');
       }
     });
 
@@ -31,7 +31,7 @@ export default function Home() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        loadUserData(session.user.id);
+        loadUserData(session.user.id, session.user.email || '');
       }
     });
 

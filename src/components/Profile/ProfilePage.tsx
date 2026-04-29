@@ -6,7 +6,7 @@ import { User, Shield, BarChart3, Calendar, Mail, AlertTriangle } from 'lucide-r
 import styles from './Profile.module.css';
 
 export default function ProfilePage() {
-  const { user, logout } = useAuthStore();
+  const { user, logout, linkGoogle, linkGitHub } = useAuthStore();
   const { boards, columns, tasks } = useBoardStore();
 
   if (!user) return null;
@@ -125,17 +125,41 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Tehlikeli Alan */}
+        {/* Hesapları Bağla */}
+        <div className={styles.card}>
+          <div className={styles.cardHeader}>
+            <div className={styles.cardIcon}><Shield size={18} /></div>
+            <h2>Hesap Bağlama</h2>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+              Mevcut e-posta hesabınıza sosyal hesaplarınızı bağlayarak alternatif giriş yöntemleri ekleyebilirsiniz.
+            </p>
+            <button className={styles.secondaryBtn} onClick={linkGoogle}>
+              Google Hesabını Bağla
+            </button>
+            <button className={styles.secondaryBtn} onClick={linkGitHub}>
+              GitHub Hesabını Bağla
+            </button>
+          </div>
+        </div>
+
+        {/* Hesap Yönetimi */}
         <div className={`${styles.card} ${styles.dangerCard}`}>
           <div className={styles.cardHeader}>
             <div className={styles.cardIcon} style={{ background: 'rgba(239,68,68,0.1)', color: '#fca5a5' }}>
               <AlertTriangle size={18} />
             </div>
-            <h2>Tehlikeli Alan</h2>
+            <h2>Hesap Yönetimi</h2>
           </div>
-          <button className={styles.dangerBtn} onClick={handleDeleteAccount}>
-            Hesabı Kapat ve Çıkış Yap
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <button className={styles.secondaryBtn} onClick={logout}>
+              Çıkış Yap
+            </button>
+            <button className={styles.dangerBtn} onClick={handleDeleteAccount}>
+              Hesabı Kapat
+            </button>
+          </div>
         </div>
 
       </div>

@@ -56,8 +56,8 @@ export default function Login() {
               : <UserPlus size={28} className={styles.icon} />
             }
           </div>
-          <h1>TaskFlow</h1>
-          <p>Kanban yönetim tahtasına hoş geldiniz.</p>
+          <h1>Notsen</h1>
+          <p>Notlarını yönet, fikirlerini organize et.</p>
         </div>
 
         {/* OAuth Butonları */}

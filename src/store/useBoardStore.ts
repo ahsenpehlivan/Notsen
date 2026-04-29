@@ -38,11 +38,12 @@ interface BoardState {
   columns: Column[];
   tasks: Task[];
 
-  loadUserData: (userId: string) => Promise<void>;
+  loadUserData: (userId: string, email: string) => Promise<void>;
 
   addBoard: (userId: string, title: string) => Promise<void>;
   deleteBoard: (id: Id) => Promise<void>;
   setActiveBoard: (id: Id) => void;
+  inviteToBoard: (boardId: Id, email: string) => Promise<{ success: boolean; error?: string }>;
 
   setColumns: (columns: Column[]) => void;
   setTasks: (tasks: Task[]) => void;
@@ -77,20 +78,47 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   columns: [],
   tasks: [],
 
-  loadUserData: async (userId: string) => {
+  loadUserData: async (userId: string, email: string) => {
     set({ isLoading: true });
 
     const savedTheme = getSavedTheme();
     set({ theme: savedTheme });
 
-    // Panolar
-    const { data: boards } = await supabase
+    // Sahip olunan panolar
+    const { data: ownedBoards } = await supabase
       .from('boards')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: true });
 
-    const mappedBoards: Board[] = (boards || []).map(b => ({
+    let allBoards = [...(ownedBoards || [])];
+
+    // Paylaşılan panolar (Eğer SQL script çalıştırılmışsa)
+    try {
+      const { data: memberRecords } = await supabase
+        .from('board_members')
+        .select('board_id')
+        .eq('user_email', email);
+
+      if (memberRecords && memberRecords.length > 0) {
+        const memberBoardIds = memberRecords.map(r => r.board_id);
+        const { data: sharedBoards } = await supabase
+          .from('boards')
+          .select('*')
+          .in('id', memberBoardIds);
+          
+        if (sharedBoards) {
+          const ownedIds = new Set(allBoards.map(b => b.id));
+          sharedBoards.forEach(sb => {
+            if (!ownedIds.has(sb.id)) allBoards.push(sb);
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Board sharing tables not found. Run the SQL setup script.');
+    }
+
+    const mappedBoards: Board[] = allBoards.map(b => ({
       id: b.id,
       title: b.title,
       user_id: b.user_id,
@@ -187,6 +215,21 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         tasks: state.tasks.filter(t => t.boardId !== id),
       };
     });
+  },
+
+  inviteToBoard: async (boardId, email) => {
+    try {
+      const { error } = await supabase
+        .from('board_members')
+        .insert({ board_id: boardId, user_email: email });
+      if (error) {
+        if (error.code === '23505') return { success: false, error: 'Kullanıcı zaten bu panoda.' };
+        return { success: false, error: error.message };
+      }
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
   },
 
   setColumns: (columns) => set({ columns }),

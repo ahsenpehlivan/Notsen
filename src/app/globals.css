@@ -1,71 +1,99 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
-  /* Color Palette - Red/Black/White Theme */
-  --bg-primary: #050505;
-  --bg-secondary: #121212;
-  --bg-tertiary: #1f1f1f;
-  
-  --text-primary: #ffffff;
-  --text-secondary: #a3a3a3;
-  --text-muted: #525252;
-  
-  --accent-primary: #e60000;
-  --accent-hover: #ff1a1a;
-  
-  --danger: #ef4444;
-  --danger-hover: #f87171;
-  
-  --success: #10b981;
+  /* ─── Dark Mode (default) ─────────────────────────────────
+     Sıcak charcoal tonları — saf siyah değil, hafif kırmızımsı sıcaklık
+  ───────────────────────────────────────────────────────── */
+  --bg-primary:   #181414;   /* çok koyu, ama saf siyah değil */
+  --bg-secondary: #221c1c;   /* kartlar / sidebar */
+  --bg-tertiary:  #2d2424;   /* input, chip arkaplanı */
+  --bg-hover:     #382c2c;   /* hover state */
 
-  /* Glassmorphism - Red Tint */
-  --glass-bg: rgba(18, 18, 18, 0.7);
-  --glass-border: rgba(230, 0, 0, 0.2);
-  --glass-shadow: 0 4px 30px rgba(230, 0, 0, 0.15);
+  --text-primary:   #f5f0f0;  /* kırık-beyaz, gözü yormaz */
+  --text-secondary: #b09898;  /* hafif kırmızımsı gri */
+  --text-muted:     #6b5656;  /* silik metin */
 
-  /* Spacing & Sizes */
-  --radius-sm: 6px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-  
-  --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-normal: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  /* ─── Kırmızı Accent ─────── */
+  --accent-primary: #e63946;   /* canlı kırmızı, parlak ama agresif değil */
+  --accent-hover:   #ff4d5b;   /* hover — biraz daha parlak */
+  --accent-subtle:  rgba(230, 57, 70, 0.12);
+  --accent-glow:    rgba(230, 57, 70, 0.3);
+  --accent-muted:   rgba(230, 57, 70, 0.06);
+
+  --danger:        #ff6b6b;
+  --danger-hover:  #ff9090;
+  --danger-subtle: rgba(255, 107, 107, 0.1);
+
+  --success:        #51cf66;
+  --success-subtle: rgba(81, 207, 102, 0.1);
+
+  --warning: #fcc419;
+
+  /* ─── Glassmorphism ──────── */
+  --glass-bg:           rgba(34, 28, 28, 0.8);
+  --glass-border:       rgba(230, 57, 70, 0.2);
+  --glass-border-subtle: rgba(245, 240, 240, 0.06);
+  --glass-shadow:       0 8px 32px rgba(0, 0, 0, 0.5);
+
+  /* ─── Spacing & Radii ───── */
+  --radius-xs:  4px;
+  --radius-sm:  8px;
+  --radius-md:  12px;
+  --radius-lg:  16px;
+  --radius-xl:  24px;
+  --radius-2xl: 32px;
+
+  --transition-fast:   0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow:   0.5s  cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ─── Light Mode ────────────────────────────────────────────
+   Temiz beyaz + kırmızı accent; siyah tonlar çok hafif
+────────────────────────────────────────────────────────── */
 [data-theme='light'] {
-  --bg-primary: #f0f2f5;
+  --bg-primary:   #fdfcfc;
   --bg-secondary: #ffffff;
-  --bg-tertiary: #e4e6eb;
-  
-  --text-primary: #050505;
-  --text-secondary: #4b5563;
-  --text-muted: #9ca3af;
-  
-  --accent-primary: #d90000;
-  --accent-hover: #e60000;
-  
-  --glass-bg: rgba(255, 255, 255, 0.85);
-  --glass-border: rgba(217, 0, 0, 0.2);
-  --glass-shadow: 0 8px 30px rgba(217, 0, 0, 0.1);
+  --bg-tertiary:  #f4eded;
+  --bg-hover:     #ece0e0;
+
+  --text-primary:   #1a1010;
+  --text-secondary: #5c4444;
+  --text-muted:     #b09898;
+
+  --accent-primary: #e63946;
+  --accent-hover:   #c1121f;
+  --accent-subtle:  rgba(230, 57, 70, 0.08);
+  --accent-glow:    rgba(230, 57, 70, 0.18);
+  --accent-muted:   rgba(230, 57, 70, 0.04);
+
+  --glass-bg:            rgba(255, 255, 255, 0.92);
+  --glass-border:        rgba(230, 57, 70, 0.2);
+  --glass-border-subtle: rgba(0, 0, 0, 0.07);
+  --glass-shadow:        0 8px 32px rgba(0, 0, 0, 0.07);
 }
 
-* {
+/* ── Reset ──────────────────────────────────────────────── */
+*, *::before, *::after {
   box-sizing: border-box;
   padding: 0;
   margin: 0;
 }
 
+html { scroll-behavior: smooth; }
+
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  line-height: 1.5;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
   overflow-x: hidden;
 }
 
+/* ── Elements ───────────────────────────────────────────── */
 button {
   font-family: inherit;
   cursor: pointer;
@@ -75,36 +103,43 @@ button {
   transition: all var(--transition-fast);
 }
 
-input, textarea {
-  font-family: inherit;
-  outline: none;
-  border: 1px solid var(--glass-border);
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  padding: 0.75rem;
-  border-radius: var(--radius-md);
-  transition: border-color var(--transition-fast);
-}
-
-input:focus, textarea:focus {
-  border-color: var(--accent-primary);
-}
-
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--bg-primary);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--bg-tertiary);
+button:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+input, textarea, select {
+  font-family: inherit;
+  outline: none;
+  border: 1px solid var(--glass-border-subtle);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  width: 100%;
 }
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--text-muted);
+}
+
+a {
+  color: var(--accent-hover);
+  text-decoration: none;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--bg-hover);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
