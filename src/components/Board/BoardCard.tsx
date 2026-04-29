@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Task } from '@/store/useBoardStore';
+import { Task, useBoardStore } from '@/store/useBoardStore';
 import { GripVertical, AlignLeft } from 'lucide-react';
 import styles from './Board.module.css';
 
