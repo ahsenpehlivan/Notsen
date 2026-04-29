@@ -23,7 +23,7 @@ import InviteModal from './InviteModal';
 import { UserPlus } from 'lucide-react';
 
 export default function KanbanBoard() {
-  const { activeBoardId, boards, columns, tasks, setColumns, setTasks, addColumn } = useBoardStore();
+  const { activeBoardId, boards, columns, tasks, setColumns, setTasks, addColumn, currentUserRole } = useBoardStore();
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [newColumnTitle, setNewColumnTitle] = useState('');
@@ -42,10 +42,13 @@ export default function KanbanBoard() {
     })
   );
 
+  const isViewer = currentUserRole === 'viewer';
+
   const boardColumns = columns.filter((c) => c.boardId === activeBoardId);
   const boardTasks = tasks.filter((t) => t.boardId === activeBoardId);
 
   const handleDragStart = (event: DragStartEvent) => {
+    if (isViewer) return;
     const { active } = event;
     const task = boardTasks.find((t) => t.id === active.id);
     if (task) setActiveTask(task);
@@ -148,13 +151,15 @@ export default function KanbanBoard() {
           >
             <UserPlus size={16} /> Paylaş
           </button>
-          <button 
-            className={styles.addCardBtn} 
-            style={{ width: 'auto', padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.05)' }}
-            onClick={() => setIsReorderingColumns(true)}
-          >
-            <Settings2 size={16} /> Sütunları Düzenle
-          </button>
+          {!isViewer && (
+            <button 
+              className={styles.addCardBtn} 
+              style={{ width: 'auto', padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.05)' }}
+              onClick={() => setIsReorderingColumns(true)}
+            >
+              <Settings2 size={16} /> Sütunları Düzenle
+            </button>
+          )}
         </div>
       </header>
 
@@ -176,36 +181,38 @@ export default function KanbanBoard() {
               />
             ))}
 
-            <div className={styles.addColumnContainer}>
-              {!isAddingColumn ? (
-                <button
-                  className={styles.addColumnBtn}
-                  onClick={() => setIsAddingColumn(true)}
-                >
-                  <Plus size={20} /> Yeni Sütun Ekle
-                </button>
-              ) : (
-                <form onSubmit={handleAddColumn} className={styles.addColumnForm}>
-                  <input
-                    type="text"
-                    value={newColumnTitle}
-                    onChange={(e) => setNewColumnTitle(e.target.value)}
-                    placeholder="Sütun başlığı..."
-                    autoFocus
-                  />
-                  <div className={styles.formActions}>
-                    <button type="submit" className={styles.saveBtn}>Kaydet</button>
-                    <button
-                      type="button"
-                      className={styles.cancelBtn}
-                      onClick={() => setIsAddingColumn(false)}
-                    >
-                      İptal
-                    </button>
-                  </div>
-                </form>
-              )}
-            </div>
+            {!isViewer && (
+              <div className={styles.addColumnContainer}>
+                {!isAddingColumn ? (
+                  <button
+                    className={styles.addColumnBtn}
+                    onClick={() => setIsAddingColumn(true)}
+                  >
+                    <Plus size={20} /> Yeni Sütun Ekle
+                  </button>
+                ) : (
+                  <form onSubmit={handleAddColumn} className={styles.addColumnForm}>
+                    <input
+                      type="text"
+                      value={newColumnTitle}
+                      onChange={(e) => setNewColumnTitle(e.target.value)}
+                      placeholder="Sütun başlığı..."
+                      autoFocus
+                    />
+                    <div className={styles.formActions}>
+                      <button type="submit" className={styles.saveBtn}>Kaydet</button>
+                      <button
+                        type="button"
+                        className={styles.cancelBtn}
+                        onClick={() => setIsAddingColumn(false)}
+                      >
+                        İptal
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            )}
 
             <DragOverlay>
               {activeTask ? <BoardCard task={activeTask} isOverlay /> : null}

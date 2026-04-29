@@ -15,7 +15,8 @@ interface BoardColumnProps {
 export default function BoardColumn({ column, tasks, onEditTask }: BoardColumnProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
-  const { addTask, deleteColumn } = useBoardStore();
+  const { addTask, deleteColumn, currentUserRole } = useBoardStore();
+  const isViewer = currentUserRole === 'viewer';
 
   const taskIds = useMemo(() => tasks.map((t) => t.id), [tasks]);
 
@@ -46,17 +47,19 @@ export default function BoardColumn({ column, tasks, onEditTask }: BoardColumnPr
           <h3>{column.title}</h3>
           <span className={styles.taskCount}>{tasks.length}</span>
         </div>
-        <button
-          className={styles.columnActionBtn}
-          onClick={() => {
-             if (window.confirm('Bu sütunu silmek istediğinize emin misiniz?')) {
-               deleteColumn(column.id);
-             }
-          }}
-          title="Sütunu Sil"
-        >
-          <Trash2 size={16} />
-        </button>
+        {!isViewer && (
+          <button
+            className={styles.columnActionBtn}
+            onClick={() => {
+               if (window.confirm('Bu sütunu silmek istediğinize emin misiniz?')) {
+                 deleteColumn(column.id);
+               }
+            }}
+            title="Sütunu Sil"
+          >
+            <Trash2 size={16} />
+          </button>
+        )}
       </div>
 
       <div className={styles.columnBody}>
@@ -67,38 +70,40 @@ export default function BoardColumn({ column, tasks, onEditTask }: BoardColumnPr
         </SortableContext>
       </div>
 
-      <div className={styles.columnFooter}>
-        {!isAdding ? (
-          <button className={styles.addCardBtn} onClick={() => setIsAdding(true)}>
-            <Plus size={18} /> Yeni Kart Ekle
-          </button>
-        ) : (
-          <form onSubmit={handleAddTask} className={styles.addCardForm}>
-            <textarea
-              value={newTaskTitle}
-              onChange={(e) => setNewTaskTitle(e.target.value)}
-              placeholder="Görev başlığı..."
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleAddTask(e as any);
-                }
-              }}
-            />
-            <div className={styles.formActions}>
-              <button type="submit" className={styles.saveBtn}>Ekle</button>
-              <button
-                type="button"
-                className={styles.cancelBtn}
-                onClick={() => setIsAdding(false)}
-              >
-                İptal
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
+      {!isViewer && (
+        <div className={styles.columnFooter}>
+          {!isAdding ? (
+            <button className={styles.addCardBtn} onClick={() => setIsAdding(true)}>
+              <Plus size={18} /> Yeni Kart Ekle
+            </button>
+          ) : (
+            <form onSubmit={handleAddTask} className={styles.addCardForm}>
+              <textarea
+                value={newTaskTitle}
+                onChange={(e) => setNewTaskTitle(e.target.value)}
+                placeholder="Görev başlığı..."
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleAddTask(e as any);
+                  }
+                }}
+              />
+              <div className={styles.formActions}>
+                <button type="submit" className={styles.saveBtn}>Ekle</button>
+                <button
+                  type="button"
+                  className={styles.cancelBtn}
+                  onClick={() => setIsAdding(false)}
+                >
+                  İptal
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -12,6 +12,8 @@ interface BoardCardProps {
 }
 
 export default function BoardCard({ task, isOverlay, onEdit }: BoardCardProps) {
+  const { currentUserRole } = useBoardStore();
+  const isViewer = currentUserRole === 'viewer';
   const {
     setNodeRef,
     attributes,
@@ -54,13 +56,15 @@ export default function BoardCard({ task, isOverlay, onEdit }: BoardCardProps) {
         }
       }}
     >
-      <div
-        {...attributes}
-        {...listeners}
-        className={styles.dragHandle}
-      >
-        <GripVertical size={16} />
-      </div>
+      {!isViewer && (
+        <div
+          {...attributes}
+          {...listeners}
+          className={styles.dragHandle}
+        >
+          <GripVertical size={16} />
+        </div>
+      )}
       <div className={styles.cardContent}>
         {task.tags && task.tags.length > 0 && (
           <div className={styles.boardTags}>

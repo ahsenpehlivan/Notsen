@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Task, useBoardStore } from '@/store/useBoardStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import { X, Trash2 } from 'lucide-react';
 import styles from './Board.module.css';
 
@@ -9,7 +10,11 @@ interface CardModalProps {
 }
 
 export default function CardModal({ task, onClose }: CardModalProps) {
-  const { updateTask, deleteTask } = useBoardStore();
+  const { updateTask, deleteTask, members, currentUserRole } = useBoardStore();
+  const { user } = useAuthStore();
+  
+  const isViewer = currentUserRole === 'viewer';
+  
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description || '');
   const [dueDate, setDueDate] = useState(task.dueDate || '');
@@ -17,9 +22,14 @@ export default function CardModal({ task, onClose }: CardModalProps) {
   const [assignee, setAssignee] = useState(task.assignee || '');
 
   const AVAILABLE_TAGS = ['Bug', 'Feature', 'Tasarım', 'Acil', 'Ar-Ge'];
-  const AVAILABLE_USERS = ['Ahsen', 'Ali', 'Ayşe', 'Mehmet', 'Zeynep', ''];
+  
+  // Sorumlu atanabilecek kişiler: Pano üyeleri + Kullanıcının kendisi
+  const allUserEmails = new Set(members.map(m => m.user_email));
+  if (user?.email) allUserEmails.add(user.email);
+  const AVAILABLE_USERS = Array.from(allUserEmails);
 
   const toggleTag = (tag: string) => {
+    if (isViewer) return;
     if (tags.includes(tag)) {
       setTags(tags.filter(t => t !== tag));
     } else {
@@ -32,6 +42,7 @@ export default function CardModal({ task, onClose }: CardModalProps) {
 
   const handleSave = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (isViewer) return;
     if (title.trim()) {
       updateTask(task.id, title.trim(), description.trim(), dueDate, tags, assignee);
       onClose();
@@ -64,6 +75,7 @@ export default function CardModal({ task, onClose }: CardModalProps) {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Kart başlığı..."
+              disabled={isViewer}
             />
           </div>
 
@@ -75,14 +87,15 @@ export default function CardModal({ task, onClose }: CardModalProps) {
               min={today}
               max={maxDate}
               onChange={(e) => setDueDate(e.target.value)}
+              disabled={isViewer}
             />
           </div>
 
           <div className={styles.inputGroup}>
             <label>Sorumlu Kişi</label>
-            <select value={assignee} onChange={(e) => setAssignee(e.target.value)}>
+            <select value={assignee} onChange={(e) => setAssignee(e.target.value)} disabled={isViewer}>
               <option value="">Atanmadı</option>
-              {AVAILABLE_USERS.filter(u => u !== '').map(u => (
+              {AVAILABLE_USERS.map(u => (
                 <option key={u} value={u}>{u}</option>
               ))}
             </select>
@@ -97,6 +110,7 @@ export default function CardModal({ task, onClose }: CardModalProps) {
                   type="button"
                   onClick={() => toggleTag(tag)}
                   className={`${styles.tagToggle} ${tags.includes(tag) ? styles.tagActive : ''}`}
+                  disabled={isViewer}
                 >
                   {tag}
                 </button>
@@ -111,17 +125,20 @@ export default function CardModal({ task, onClose }: CardModalProps) {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Daha detaylı bir açıklama ekleyin..."
               rows={5}
+              disabled={isViewer}
             />
           </div>
         </div>
 
           <footer className={styles.modalFooter}>
-            <button type="button" className={styles.deleteBtn} onClick={handleDelete}>
-              <Trash2 size={16} /> Sil
-            </button>
+            {!isViewer && (
+              <button type="button" className={styles.deleteBtn} onClick={handleDelete}>
+                <Trash2 size={16} /> Sil
+              </button>
+            )}
             <div className={styles.modalActions}>
               <button type="button" className={styles.cancelBtn} onClick={onClose}>İptal</button>
-              <button type="submit" className={styles.saveBtn}>Kaydet</button>
+              {!isViewer && <button type="submit" className={styles.saveBtn}>Kaydet</button>}
             </div>
           </footer>
         </form>

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export type Id = string;
 
@@ -7,6 +8,13 @@ export interface Board {
   id: Id;
   title: string;
   user_id?: string;
+}
+
+export interface BoardMember {
+  id: string;
+  board_id: string;
+  user_email: string;
+  role: 'viewer' | 'editor' | 'owner';
 }
 
 export interface Column {
@@ -37,13 +45,18 @@ interface BoardState {
   activeBoardId: Id | null;
   columns: Column[];
   tasks: Task[];
+  members: BoardMember[];
+  currentUserRole: 'viewer' | 'editor' | 'owner' | null;
 
   loadUserData: (userId: string, email: string) => Promise<void>;
 
   addBoard: (userId: string, title: string) => Promise<void>;
   deleteBoard: (id: Id) => Promise<void>;
   setActiveBoard: (id: Id) => void;
-  inviteToBoard: (boardId: Id, email: string) => Promise<{ success: boolean; error?: string }>;
+  inviteToBoard: (boardId: Id, email: string, role: 'viewer' | 'editor') => Promise<{ success: boolean; error?: string }>;
+  fetchMembers: (boardId: Id) => Promise<void>;
+  updateMemberRole: (memberId: string, role: 'viewer' | 'editor') => Promise<void>;
+  removeMember: (memberId: string) => Promise<void>;
 
   setColumns: (columns: Column[]) => void;
   setTasks: (tasks: Task[]) => void;
@@ -77,6 +90,8 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   activeBoardId: null,
   columns: [],
   tasks: [],
+  members: [],
+  currentUserRole: null,
 
   loadUserData: async (userId: string, email: string) => {
     set({ isLoading: true });
@@ -171,9 +186,16 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       tasks: mappedTasks,
       isLoading: false,
     });
+    
+    if (firstBoardId) {
+      get().fetchMembers(firstBoardId);
+    }
   },
 
-  setActiveBoard: (id) => set({ activeBoardId: id }),
+  setActiveBoard: (id) => {
+    set({ activeBoardId: id });
+    get().fetchMembers(id);
+  },
 
   addBoard: async (userId, title) => {
     const { data, error } = await supabase
@@ -221,19 +243,49 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     });
   },
 
-  inviteToBoard: async (boardId, email) => {
+  inviteToBoard: async (boardId, email, role) => {
     try {
       const { error } = await supabase
         .from('board_members')
-        .insert({ board_id: boardId, user_email: email });
+        .insert({ board_id: boardId, user_email: email, role });
       if (error) {
         if (error.code === '23505') return { success: false, error: 'Kullanıcı zaten bu panoda.' };
         return { success: false, error: error.message };
       }
+      get().fetchMembers(boardId);
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message };
     }
+  },
+
+  fetchMembers: async (boardId) => {
+    const { data } = await supabase.from('board_members').select('*').eq('board_id', boardId);
+    
+    const { user } = useAuthStore.getState();
+    const board = get().boards.find(b => b.id === boardId);
+    
+    let role: 'viewer' | 'editor' | 'owner' = 'viewer';
+    if (board?.user_id === user?.id) {
+      role = 'owner';
+    } else {
+      const myMember = data?.find(m => m.user_email === user?.email);
+      if (myMember) role = myMember.role as 'viewer' | 'editor';
+    }
+
+    set({ members: data || [], currentUserRole: role });
+  },
+
+  updateMemberRole: async (memberId, role) => {
+    await supabase.from('board_members').update({ role }).eq('id', memberId);
+    const { activeBoardId } = get();
+    if (activeBoardId) get().fetchMembers(activeBoardId);
+  },
+
+  removeMember: async (memberId) => {
+    await supabase.from('board_members').delete().eq('id', memberId);
+    const { activeBoardId } = get();
+    if (activeBoardId) get().fetchMembers(activeBoardId);
   },
 
   setColumns: (columns) => set({ columns }),
