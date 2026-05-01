@@ -12,7 +12,8 @@ interface BoardCardProps {
 }
 
 export default function BoardCard({ task, isOverlay, onEdit }: BoardCardProps) {
-  const { currentUserRole } = useBoardStore();
+  const { currentUserRole, boards, activeBoardId } = useBoardStore();
+  const currentBoard = boards.find(b => b.id === activeBoardId);
   const isViewer = currentUserRole === 'viewer';
   const {
     setNodeRef,
@@ -68,11 +69,18 @@ export default function BoardCard({ task, isOverlay, onEdit }: BoardCardProps) {
       <div className={styles.cardContent}>
         {task.tags && task.tags.length > 0 && (
           <div className={styles.boardTags}>
-            {task.tags.map(tag => (
-              <span key={tag} className={`${styles.boardTag} ${styles['tag' + tag.replace(/[^a-zA-Z]/g, '')]}`}>
-                {tag}
-              </span>
-            ))}
+            {task.tags.map(tag => {
+              const label = currentBoard?.labels?.find(l => l.name === tag);
+              return (
+                <span 
+                  key={tag} 
+                  className={styles.boardTag}
+                  style={label ? { backgroundColor: label.color, color: '#1E293B', borderColor: label.color } : {}}
+                >
+                  {tag}
+                </span>
+              );
+            })}
           </div>
         )}
         <h4>{task.title}</h4>

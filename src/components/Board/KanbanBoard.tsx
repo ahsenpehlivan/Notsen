@@ -16,11 +16,12 @@ import { SortableContext, arrayMove, sortableKeyboardCoordinates } from '@dnd-ki
 import { useBoardStore, Task } from '@/store/useBoardStore';
 import BoardColumn from './BoardColumn';
 import BoardCard from './BoardCard';
-import { Plus, Settings2, Menu, UserPlus } from 'lucide-react';
+import { Plus, Settings2, Menu, UserPlus, Tag } from 'lucide-react';
 import styles from './Board.module.css';
 import CardModal from './CardModal';
 import ColumnReorderModal from './ColumnReorderModal';
 import InviteModal from './InviteModal';
+import LabelsManagerModal from './LabelsManagerModal';
 
 interface KanbanBoardProps {
   onOpenMenu?: () => void;
@@ -34,6 +35,7 @@ export default function KanbanBoard({ onOpenMenu }: KanbanBoardProps = {}) {
   const [isAddingColumn, setIsAddingColumn] = useState(false);
   const [isReorderingColumns, setIsReorderingColumns] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [isLabelsManagerOpen, setIsLabelsManagerOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -80,37 +82,24 @@ export default function KanbanBoard({ onOpenMenu }: KanbanBoardProps = {}) {
 
     // Sütun değiştirme durumu (Kartı başka bir karta sürüklediğimizde)
     if (isActiveTask && isOverTask) {
-      const activeIndex = tasks.findIndex((t) => t.id === activeId);
-      const overIndex = tasks.findIndex((t) => t.id === overId);
+      useBoardStore.setState((state) => {
+        const activeTaskIndex = state.tasks.findIndex(t => t.id === activeId);
+        const overTaskIndex = state.tasks.findIndex(t => t.id === overId);
+        
+        if (activeTaskIndex === -1 || overTaskIndex === -1) return state;
 
-      if (tasks[activeIndex].columnId !== tasks[overIndex].columnId) {
-        setTasks(
-          tasks.map((t, idx) => {
-            if (idx === activeIndex) {
-              return { ...t, columnId: tasks[overIndex].columnId };
-            }
-            return t;
-          })
-        );
-        // Aynı tick içinde arrayMove çağırırsak state conflict olabilir, useEffect ile çözülür veya map içinde halledilir.
-        // Ama basitçe, arrayMove ile sırayı da güncelleyelim.
-        // Dnd-kit react state güncellemelerinde biraz asenktron olabilir, o yüzden fonksiyonel state update daha güvenlidir.
-        // Zustand store ile senkron tutmak için:
-        useBoardStore.setState((state) => {
-           const activeTaskIndex = state.tasks.findIndex(t => t.id === activeId);
-           const overTaskIndex = state.tasks.findIndex(t => t.id === overId);
-           const newTasks = [...state.tasks];
-           newTasks[activeTaskIndex].columnId = newTasks[overTaskIndex].columnId;
-           return { tasks: arrayMove(newTasks, activeTaskIndex, overTaskIndex) };
-        });
-      } else {
-        // Aynı sütun içinde sıralama
-        useBoardStore.setState((state) => {
-          const activeTaskIndex = state.tasks.findIndex(t => t.id === activeId);
-          const overTaskIndex = state.tasks.findIndex(t => t.id === overId);
+        const activeTask = state.tasks[activeTaskIndex];
+        const overTask = state.tasks[overTaskIndex];
+
+        if (activeTask.columnId !== overTask.columnId) {
+          const newTasks = [...state.tasks];
+          newTasks[activeTaskIndex] = { ...newTasks[activeTaskIndex], columnId: overTask.columnId };
+          return { tasks: arrayMove(newTasks, activeTaskIndex, overTaskIndex) };
+        } else {
+          // Aynı sütun içinde sıralama
           return { tasks: arrayMove(state.tasks, activeTaskIndex, overTaskIndex) };
-        });
-      }
+        }
+      });
     }
 
     // Kartı boş bir sütuna sürüklediğimizde
@@ -127,6 +116,10 @@ export default function KanbanBoard({ onOpenMenu }: KanbanBoardProps = {}) {
 
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveTask(null);
+    if (isViewer || !activeBoardId) return;
+    
+    // DB senkronizasyonunu yap
+    useBoardStore.getState().syncTaskOrder(activeBoardId);
   };
 
   const handleAddColumn = (e: React.FormEvent) => {
@@ -173,13 +166,22 @@ export default function KanbanBoard({ onOpenMenu }: KanbanBoardProps = {}) {
             <UserPlus size={16} /> <span>Paylaş</span>
           </button>
           {!isViewer && (
-            <button 
-              className={styles.addCardBtn} 
-              style={{ width: 'auto', padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.05)' }}
-              onClick={() => setIsReorderingColumns(true)}
-            >
-              <Settings2 size={16} /> <span>Sütunları Düzenle</span>
-            </button>
+            <>
+              <button 
+                className={styles.addCardBtn} 
+                style={{ width: 'auto', padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.05)', marginRight: '8px' }}
+                onClick={() => setIsLabelsManagerOpen(true)}
+              >
+                <Tag size={16} /> <span className={styles.hideOnMobile}>Etiketleri Düzenle</span>
+              </button>
+              <button 
+                className={styles.addCardBtn} 
+                style={{ width: 'auto', padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.05)' }}
+                onClick={() => setIsReorderingColumns(true)}
+              >
+                <Settings2 size={16} /> <span className={styles.hideOnMobile}>Sütunları Düzenle</span>
+              </button>
+            </>
           )}
         </div>
       </header>
@@ -260,6 +262,13 @@ export default function KanbanBoard({ onOpenMenu }: KanbanBoardProps = {}) {
         <InviteModal
           boardId={activeBoardId}
           onClose={() => setIsInviteModalOpen(false)}
+        />
+      )}
+
+      {isLabelsManagerOpen && (
+        <LabelsManagerModal
+          boardId={activeBoardId}
+          onClose={() => setIsLabelsManagerOpen(false)}
         />
       )}
     </div>

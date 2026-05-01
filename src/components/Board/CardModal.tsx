@@ -10,19 +10,20 @@ interface CardModalProps {
 }
 
 export default function CardModal({ task, onClose }: CardModalProps) {
-  const { updateTask, deleteTask, members, currentUserRole } = useBoardStore();
+  const { updateTask, deleteTask, members, currentUserRole, boards, activeBoardId } = useBoardStore();
   const { user } = useAuthStore();
-  
+
   const isViewer = currentUserRole === 'viewer';
-  
+
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description || '');
   const [dueDate, setDueDate] = useState(task.dueDate || '');
   const [tags, setTags] = useState<string[]>(task.tags || []);
   const [assignee, setAssignee] = useState(task.assignee || '');
 
-  const AVAILABLE_TAGS = ['Bug', 'Feature', 'Tasarım', 'Acil', 'Ar-Ge'];
-  
+  const currentBoard = boards.find(b => b.id === activeBoardId);
+  const AVAILABLE_TAGS = currentBoard?.labels || [];
+
   // Sorumlu atanabilecek kişiler: Pano üyeleri + Kullanıcının kendisi
   const allUserEmails = new Set(members.map(m => m.user_email));
   if (user?.email) allUserEmails.add(user.email);
@@ -38,7 +39,7 @@ export default function CardModal({ task, onClose }: CardModalProps) {
   };
 
   const today = new Date().toISOString().split('T')[0];
-  const maxDate = "5000-12-31";
+  const maxDate = '5000-12-31';
 
   const handleSave = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -68,67 +69,77 @@ export default function CardModal({ task, onClose }: CardModalProps) {
 
         <form onSubmit={handleSave}>
           <div className={styles.modalBody}>
-          <div className={styles.inputGroup}>
-            <label>Başlık</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Kart başlığı..."
-              disabled={isViewer}
-            />
-          </div>
+            <div className={styles.inputGroup}>
+              <label>Başlık</label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Kart başlığı..."
+                disabled={isViewer}
+              />
+            </div>
 
-          <div className={styles.inputGroup}>
-            <label>Son Tarih</label>
-            <input
-              type="date"
-              value={dueDate}
-              min={today}
-              max={maxDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              disabled={isViewer}
-            />
-          </div>
+            <div className={styles.inputGroup}>
+              <label>Son Tarih</label>
+              <input
+                type="date"
+                value={dueDate}
+                min={today}
+                max={maxDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                disabled={isViewer}
+              />
+            </div>
 
-          <div className={styles.inputGroup}>
-            <label>Sorumlu Kişi</label>
-            <select value={assignee} onChange={(e) => setAssignee(e.target.value)} disabled={isViewer}>
-              <option value="">Atanmadı</option>
-              {AVAILABLE_USERS.map(u => (
-                <option key={u} value={u}>{u}</option>
-              ))}
-            </select>
-          </div>
+            <div className={styles.inputGroup}>
+              <label>Sorumlu Kişi</label>
+              <select value={assignee} onChange={(e) => setAssignee(e.target.value)} disabled={isViewer}>
+                <option value="">Atanmadı</option>
+                {AVAILABLE_USERS.map(u => (
+                  <option key={u} value={u}>{u}</option>
+                ))}
+              </select>
+            </div>
 
-          <div className={styles.inputGroup}>
-            <label>Etiketler</label>
-            <div className={styles.tagsContainer}>
-              {AVAILABLE_TAGS.map(tag => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => toggleTag(tag)}
-                  className={`${styles.tagToggle} ${tags.includes(tag) ? styles.tagActive : ''}`}
-                  disabled={isViewer}
-                >
-                  {tag}
-                </button>
-              ))}
+            <div className={styles.inputGroup}>
+              <label>Etiketler</label>
+              <div className={styles.tagsContainer}>
+                {AVAILABLE_TAGS.map(label => {
+                  const isActive = tags.includes(label.name);
+                  return (
+                    <button
+                      key={label.id}
+                      type="button"
+                      onClick={() => toggleTag(label.name)}
+                      className={`${styles.tagToggle} ${isActive ? styles.tagActive : ''}`}
+                      disabled={isViewer}
+                      style={{
+                        backgroundColor: isActive ? label.color : 'transparent',
+                        color: isActive ? '#1E293B' : 'var(--text-secondary)',
+                        borderColor: isActive ? label.color : 'var(--border)',
+                        fontWeight: isActive ? 600 : 400,
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {label.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className={styles.inputGroup}>
+              <label>Açıklama</label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Daha detaylı bir açıklama ekleyin..."
+                rows={5}
+                disabled={isViewer}
+              />
             </div>
           </div>
-
-          <div className={styles.inputGroup}>
-            <label>Açıklama</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Daha detaylı bir açıklama ekleyin..."
-              rows={5}
-              disabled={isViewer}
-            />
-          </div>
-        </div>
 
           <footer className={styles.modalFooter}>
             {!isViewer && (

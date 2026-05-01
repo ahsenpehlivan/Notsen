@@ -4,10 +4,26 @@ import { useAuthStore } from '@/store/useAuthStore';
 
 export type Id = string;
 
+export const PASTEL_COLORS = [
+  '#FCA5A5', // Red
+  '#FCD34D', // Yellow
+  '#86EFAC', // Green
+  '#93C5FD', // Blue
+  '#C4B5FD', // Purple
+  '#F9A8D4', // Pink
+];
+
+export interface BoardLabel {
+  id: string;
+  name: string;
+  color: string;
+}
+
 export interface Board {
   id: Id;
   title: string;
   user_id?: string;
+  labels?: BoardLabel[];
 }
 
 export interface BoardMember {
@@ -34,6 +50,8 @@ export interface Task {
   tags?: string[];
   assignee?: string;
   position: number;
+  _dbColumnId?: Id;
+  _dbPosition?: number;
 }
 
 interface BoardState {
@@ -69,9 +87,30 @@ interface BoardState {
   deleteTask: (id: Id) => Promise<void>;
   updateTask: (id: Id, title: string, description: string, dueDate?: string, tags?: string[], assignee?: string) => Promise<void>;
   moveTask: (taskId: Id, toColumnId: Id) => Promise<void>;
+  updateBoardLabels: (boardId: Id, newLabels: BoardLabel[], oldLabelName?: string, newLabelName?: string) => Promise<void>;
+  syncTaskOrder: (boardId: Id) => Promise<void>;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
+
+const parseLabels = (labels: any): BoardLabel[] => {
+  if (!labels || !Array.isArray(labels) || labels.length === 0) {
+    return [
+      { id: generateId(), name: 'Bug', color: '#FCA5A5' },
+      { id: generateId(), name: 'Feature', color: '#93C5FD' },
+      { id: generateId(), name: 'Tasarım', color: '#C4B5FD' },
+      { id: generateId(), name: 'Acil', color: '#FCD34D' },
+      { id: generateId(), name: 'Ar-Ge', color: '#86EFAC' },
+    ];
+  }
+  
+  return labels.map((l: any, i: number) => {
+    if (typeof l === 'string') {
+      return { id: generateId(), name: l, color: PASTEL_COLORS[i % PASTEL_COLORS.length] };
+    }
+    return l;
+  });
+};
 
 const getSavedTheme = (): 'dark' | 'light' => {
   if (typeof window === 'undefined') return 'dark';
@@ -137,6 +176,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       id: b.id,
       title: b.title,
       user_id: b.user_id,
+      labels: parseLabels(b.labels),
     }));
 
     const firstBoardId = mappedBoards[0]?.id || null;
@@ -177,6 +217,8 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       tags: t.tags || [],
       assignee: t.assignee || '',
       position: t.position,
+      _dbColumnId: t.column_id,
+      _dbPosition: t.position,
     }));
 
     set({
@@ -210,7 +252,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       return;
     }
 
-    const newBoard: Board = { id: data.id, title: data.title, user_id: data.user_id };
+    const newBoard: Board = { id: data.id, title: data.title, user_id: data.user_id, labels: parseLabels(data.labels) };
 
     // Yeni panoya varsayılan sütunlar ekle
     const defaultCols = [
@@ -353,6 +395,8 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       title: data.title, description: data.description || '',
       dueDate: data.due_date || '', tags: data.tags || [], assignee: data.assignee || '',
       position: data.position,
+      _dbColumnId: data.column_id,
+      _dbPosition: data.position,
     };
     set(state => ({ tasks: [...state.tasks, newTask] }));
   },
@@ -376,5 +420,96 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     set(state => ({
       tasks: state.tasks.map(t => t.id === taskId ? { ...t, columnId: toColumnId } : t),
     }));
+  },
+
+  updateBoardLabels: async (boardId, newLabels, oldLabelName, newLabelName) => {
+    // DB güncelleme
+    await supabase.from('boards').update({ labels: newLabels }).eq('id', boardId);
+    
+    // Board state güncelleme
+    set(state => ({
+      boards: state.boards.map(b => b.id === boardId ? { ...b, labels: newLabels } : b)
+    }));
+
+    // Eğer eski etiket değiştirildiyse (veya silindiyse), task'leri de güncelle
+    if (oldLabelName) {
+      const { tasks } = get();
+      const boardTasksToUpdate = tasks.filter(t => t.boardId === boardId && (t.tags || []).includes(oldLabelName));
+      
+      if (boardTasksToUpdate.length > 0) {
+        // Yeni görev listesini oluştur
+        const updatedTasksState = tasks.map(t => {
+          if (t.boardId === boardId && (t.tags || []).includes(oldLabelName)) {
+            let newTags = [...(t.tags || [])];
+            if (newLabelName) {
+              // İsim değişikliği
+              newTags = newTags.map(tag => tag === oldLabelName ? newLabelName : tag);
+            } else {
+              // Silme işlemi
+              newTags = newTags.filter(tag => tag !== oldLabelName);
+            }
+            return { ...t, tags: newTags };
+          }
+          return t;
+        });
+
+        // State'i güncelle
+        set({ tasks: updatedTasksState });
+
+        // DB'de toplu güncelleme
+        await Promise.all(
+          boardTasksToUpdate.map(t => {
+            let updatedTags = [...(t.tags || [])];
+            if (newLabelName) {
+              updatedTags = updatedTags.map(tag => tag === oldLabelName ? newLabelName : tag);
+            } else {
+              updatedTags = updatedTags.filter(tag => tag !== oldLabelName);
+            }
+            return supabase.from('tasks').update({ tags: updatedTags }).eq('id', t.id);
+          })
+        );
+      }
+    }
+  },
+
+  syncTaskOrder: async (boardId) => {
+    const { tasks } = get();
+    const boardTasks = tasks.filter(t => t.boardId === boardId);
+    
+    const updatedTasks = [...tasks];
+    const promises: Promise<any>[] = [];
+
+    const columnGroups: Record<string, Task[]> = {};
+    boardTasks.forEach(t => {
+      if (!columnGroups[t.columnId]) columnGroups[t.columnId] = [];
+      columnGroups[t.columnId].push(t);
+    });
+
+    Object.entries(columnGroups).forEach(([colId, colTasks]) => {
+      colTasks.forEach((task, index) => {
+        // Yalnızca db durumu ile farklılık gösterenleri güncelle
+        if (task._dbColumnId !== colId || task._dbPosition !== index) {
+          const taskIdx = updatedTasks.findIndex(t => t.id === task.id);
+          if (taskIdx !== -1) {
+            updatedTasks[taskIdx] = { 
+              ...updatedTasks[taskIdx], 
+              position: index, 
+              columnId: colId,
+              _dbColumnId: colId,
+              _dbPosition: index
+            };
+          }
+
+          promises.push(
+            supabase.from('tasks').update({ column_id: colId, position: index }).eq('id', task.id) as unknown as Promise<any>
+          );
+        }
+      });
+    });
+
+    if (promises.length > 0) {
+      set({ tasks: updatedTasks });
+      await Promise.all(promises);
+    }
   },
 }));

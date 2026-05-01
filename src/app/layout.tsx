@@ -15,9 +15,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Notsen — Notlarını Yönet",
   description: "Notlarını organize et, projelerini takip et. Notsen Kanban uygulaması.",
-  icons: {
-    icon: "/icon.png",
-  },
 };
 
 export default function RootLayout({
