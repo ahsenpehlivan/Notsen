@@ -100,3 +100,9 @@ CREATE POLICY "Gorev Silebilir" ON public.tasks
 
 -- 7. boards tablosuna etiket (labels) sütunu ekle
 ALTER TABLE public.boards ADD COLUMN IF NOT EXISTS labels jsonb DEFAULT '["Bug", "Feature", "Tasarım", "Acil", "Ar-Ge"]'::jsonb;
+
+-- 8. Supabase Realtime aktifleştir (Gerçek Zamanlı Senkronizasyon)
+-- Tablo değişikliklerinin anlık yayınlanması için:
+ALTER PUBLICATION supabase_realtime ADD TABLE public.tasks;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.columns;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.boards;

@@ -6,9 +6,7 @@
   flex: 1;
   overflow: hidden;
   background: var(--bg-primary);
-  background-image:
-    radial-gradient(ellipse 60% 40% at 60% -10%, rgba(230, 57, 70, 0.12), transparent),
-    radial-gradient(ellipse 40% 40% at 10% 100%, rgba(255, 77, 91, 0.06), transparent);
+  background-image: var(--bg-gradient);
 }
 
 /* ── Board Header ────────────────────────────────────────── */
@@ -17,7 +15,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 1.1rem 1.75rem;
-  background: rgba(22, 27, 34, 0.6);
+  background: var(--glass-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--glass-border-subtle);
@@ -622,4 +620,178 @@
     font-size: 1.1rem;
     padding: 0 0.5rem;
   }
+}
+
+/* ── Search & Filter Bar ────────────────────────────────── */
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem 1.75rem;
+  background: var(--glass-bg);
+  border-bottom: 1px solid var(--glass-border-subtle);
+  flex-wrap: wrap;
+}
+
+.searchInput {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.4rem 0.75rem;
+  flex: 1;
+  min-width: 180px;
+  max-width: 320px;
+  transition: border-color var(--transition-fast);
+}
+
+.searchInput:focus-within {
+  border-color: var(--accent-primary);
+}
+
+.searchInput input {
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
+}
+
+.searchInput input::placeholder {
+  color: var(--text-muted);
+}
+
+.searchIcon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.clearInputBtn {
+  color: var(--text-muted);
+  padding: 0.1rem;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  transition: color var(--transition-fast);
+}
+
+.clearInputBtn:hover { color: var(--text-primary); }
+
+.filterToggleBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.4rem 0.875rem;
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--glass-border-subtle);
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.filterToggleBtn:hover {
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+.filterToggleBtnActive {
+  border-color: var(--accent-primary);
+  color: var(--accent-hover);
+  background: var(--accent-subtle);
+}
+
+.filterDot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+}
+
+.clearFilterBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--danger);
+  background: var(--danger-subtle);
+  border: 1px solid transparent;
+  transition: all var(--transition-fast);
+}
+
+.clearFilterBtn:hover { opacity: 0.8; }
+
+.filterResultText {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+/* ── Filter Panel ───────────────────────────────────────── */
+.filterPanel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 2rem;
+  padding: 0.875rem 1.75rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--glass-border-subtle);
+  animation: fadeIn 0.15s ease;
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex-wrap: wrap;
+}
+
+.filterGroupLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.filterChips {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.filterChip {
+  padding: 0.25rem 0.75rem;
+  border-radius: 99px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--glass-border-subtle);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.filterChip:hover {
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+  .searchBar { padding: 0.5rem 1rem; }
+  .filterPanel { padding: 0.75rem 1rem; }
+  .filterResultText { display: none; }
+  .searchInput { max-width: 100%; }
 }

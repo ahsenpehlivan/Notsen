@@ -3,6 +3,9 @@ import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/useAuthStore';
 
 export type Id = string;
+export type ThemeName = 'charcoal' | 'midnight' | 'cream-slate' | 'stone-indigo' | 'warm-linen';
+
+const VALID_THEMES: ThemeName[] = ['charcoal', 'midnight', 'cream-slate', 'stone-indigo', 'warm-linen'];
 
 export const PASTEL_COLORS = [
   '#FCA5A5', // Red
@@ -55,10 +58,12 @@ export interface Task {
 }
 
 interface BoardState {
-  theme: 'dark' | 'light';
-  setTheme: (theme: 'dark' | 'light') => void;
+  theme: ThemeName;
+  setTheme: (theme: ThemeName) => void;
 
   isLoading: boolean;
+  isDragging: boolean;
+  setIsDragging: (v: boolean) => void;
   boards: Board[];
   activeBoardId: Id | null;
   columns: Column[];
@@ -89,6 +94,9 @@ interface BoardState {
   moveTask: (taskId: Id, toColumnId: Id) => Promise<void>;
   updateBoardLabels: (boardId: Id, newLabels: BoardLabel[], oldLabelName?: string, newLabelName?: string) => Promise<void>;
   syncTaskOrder: (boardId: Id) => Promise<void>;
+
+  subscribeToRealtime: (boardIds: Id[]) => void;
+  unsubscribeFromRealtime: () => void;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -112,19 +120,22 @@ const parseLabels = (labels: any): BoardLabel[] => {
   });
 };
 
-const getSavedTheme = (): 'dark' | 'light' => {
-  if (typeof window === 'undefined') return 'dark';
-  return (localStorage.getItem('taskflow-theme') as 'dark' | 'light') || 'dark';
+const getSavedTheme = (): ThemeName => {
+  if (typeof window === 'undefined') return 'charcoal';
+  const saved = localStorage.getItem('taskflow-theme') as ThemeName;
+  return VALID_THEMES.includes(saved) ? saved : 'charcoal';
 };
 
 export const useBoardStore = create<BoardState>((set, get) => ({
-  theme: 'dark',
+  theme: 'charcoal',
   setTheme: (theme) => {
     if (typeof window !== 'undefined') localStorage.setItem('taskflow-theme', theme);
     set({ theme });
   },
 
   isLoading: false,
+  isDragging: false,
+  setIsDragging: (v) => set({ isDragging: v }),
   boards: [],
   activeBoardId: null,
   columns: [],
@@ -232,6 +243,9 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     if (firstBoardId) {
       get().fetchMembers(firstBoardId);
     }
+
+    // Realtime aboneliğini başlat
+    get().subscribeToRealtime(mappedBoards.map(b => b.id));
   },
 
   setActiveBoard: (id) => {
@@ -510,6 +524,151 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     if (promises.length > 0) {
       set({ tasks: updatedTasks });
       await Promise.all(promises);
+    }
+  },
+
+  // ─── Realtime ───────────────────────────────────────────────────
+  subscribeToRealtime: (boardIds) => {
+    // Önceki kanalı temizle
+    get().unsubscribeFromRealtime();
+
+    if (boardIds.length === 0) return;
+
+    const channel = supabase
+      .channel('notsen-realtime')
+
+      // ── TASKS ──
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'tasks' },
+        (payload) => {
+          const d = payload.new as any;
+          if (!boardIds.includes(d.board_id)) return;
+          const newTask: Task = {
+            id: d.id, boardId: d.board_id, columnId: d.column_id,
+            title: d.title, description: d.description || '',
+            dueDate: d.due_date || '', tags: d.tags || [], assignee: d.assignee || '',
+            position: d.position, _dbColumnId: d.column_id, _dbPosition: d.position,
+          };
+          set(state => {
+            // Zaten varsa ekleme (kendi eklediğimiz)
+            if (state.tasks.some(t => t.id === newTask.id)) return state;
+            return { tasks: [...state.tasks, newTask] };
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'tasks' },
+        (payload) => {
+          const d = payload.new as any;
+          if (!boardIds.includes(d.board_id)) return;
+          const { isDragging } = get();
+          set(state => ({
+            tasks: state.tasks.map(t => {
+              if (t.id !== d.id) return t;
+              // Sürükleme sırasında pozisyon/sütun değişikliklerini atla
+              // (görsel çakışma olmasın), sadece içerik güncellemelerini uygula
+              if (isDragging) {
+                return {
+                  ...t,
+                  title: d.title,
+                  description: d.description || '',
+                  dueDate: d.due_date || '',
+                  tags: d.tags || [],
+                  assignee: d.assignee || '',
+                };
+              }
+              return {
+                ...t,
+                title: d.title,
+                description: d.description || '',
+                dueDate: d.due_date || '',
+                tags: d.tags || [],
+                assignee: d.assignee || '',
+                columnId: d.column_id,
+                position: d.position,
+                _dbColumnId: d.column_id,
+                _dbPosition: d.position,
+              };
+            }),
+          }));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'tasks' },
+        (payload) => {
+          const d = payload.old as any;
+          set(state => ({ tasks: state.tasks.filter(t => t.id !== d.id) }));
+        }
+      )
+
+      // ── COLUMNS ──
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'columns' },
+        (payload) => {
+          const d = payload.new as any;
+          if (!boardIds.includes(d.board_id)) return;
+          const newCol: Column = { id: d.id, boardId: d.board_id, title: d.title, position: d.position };
+          set(state => {
+            if (state.columns.some(c => c.id === newCol.id)) return state;
+            return { columns: [...state.columns, newCol] };
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'columns' },
+        (payload) => {
+          const d = payload.new as any;
+          if (!boardIds.includes(d.board_id)) return;
+          set(state => ({
+            columns: state.columns.map(c =>
+              c.id === d.id ? { ...c, title: d.title, position: d.position } : c
+            ),
+          }));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'columns' },
+        (payload) => {
+          const d = payload.old as any;
+          set(state => ({
+            columns: state.columns.filter(c => c.id !== d.id),
+            tasks: state.tasks.filter(t => t.columnId !== d.id),
+          }));
+        }
+      )
+
+      // ── BOARDS (etiket güncellemeleri için) ──
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'boards' },
+        (payload) => {
+          const d = payload.new as any;
+          if (!boardIds.includes(d.id)) return;
+          set(state => ({
+            boards: state.boards.map(b =>
+              b.id === d.id ? { ...b, title: d.title, labels: parseLabels(d.labels) } : b
+            ),
+          }));
+        }
+      )
+
+      .subscribe();
+
+    // Kanalı dışarıdan erişilebilir yere sakla
+    (get() as any)._realtimeChannel = channel;
+  },
+
+  unsubscribeFromRealtime: () => {
+    const ch = (get() as any)._realtimeChannel;
+    if (ch) {
+      supabase.removeChannel(ch);
+      (get() as any)._realtimeChannel = null;
     }
   },
 }));

@@ -1,21 +1,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-:root {
-  /* ─── Dark Mode (default) ─────────────────────────────────
-     Sıcak charcoal tonları — saf siyah değil, hafif kırmızımsı sıcaklık
-  ───────────────────────────────────────────────────────── */
-  --bg-primary:   #181414;   /* çok koyu, ama saf siyah değil */
-  --bg-secondary: #221c1c;   /* kartlar / sidebar */
-  --bg-tertiary:  #2d2424;   /* input, chip arkaplanı */
-  --bg-hover:     #382c2c;   /* hover state */
+:root,
+[data-theme='charcoal'] {
+  /* ─── Charcoal ─────────────────────────────────────────────
+     Sıcak kömür tonları — varsayılan karanlık tema
+  ────────────────────────────────────────────────────────── */
+  --bg-primary:   #181414;
+  --bg-secondary: #221c1c;
+  --bg-tertiary:  #2d2424;
+  --bg-hover:     #382c2c;
 
-  --text-primary:   #f5f0f0;  /* kırık-beyaz, gözü yormaz */
-  --text-secondary: #b09898;  /* hafif kırmızımsı gri */
-  --text-muted:     #6b5656;  /* silik metin */
+  --text-primary:   #f5f0f0;
+  --text-secondary: #b09898;
+  --text-muted:     #6b5656;
 
-  /* ─── Kırmızı Accent ─────── */
-  --accent-primary: #e63946;   /* canlı kırmızı, parlak ama agresif değil */
-  --accent-hover:   #ff4d5b;   /* hover — biraz daha parlak */
+  --accent-primary: #e63946;
+  --accent-hover:   #ff4d5b;
   --accent-subtle:  rgba(230, 57, 70, 0.12);
   --accent-glow:    rgba(230, 57, 70, 0.3);
   --accent-muted:   rgba(230, 57, 70, 0.06);
@@ -26,16 +26,170 @@
 
   --success:        #51cf66;
   --success-subtle: rgba(81, 207, 102, 0.1);
-
   --warning: #fcc419;
 
-  /* ─── Glassmorphism ──────── */
-  --glass-bg:           rgba(34, 28, 28, 0.8);
-  --glass-border:       rgba(230, 57, 70, 0.2);
+  --glass-bg:            rgba(34, 28, 28, 0.8);
+  --glass-border:        rgba(230, 57, 70, 0.2);
   --glass-border-subtle: rgba(245, 240, 240, 0.06);
-  --glass-shadow:       0 8px 32px rgba(0, 0, 0, 0.5);
+  --glass-shadow:        0 8px 32px rgba(0, 0, 0, 0.5);
 
-  /* ─── Spacing & Radii ───── */
+  --bg-gradient:
+    radial-gradient(ellipse 60% 40% at 60% -10%, rgba(230, 57, 70, 0.12), transparent),
+    radial-gradient(ellipse 40% 40% at 10% 100%, rgba(255, 77, 91, 0.06), transparent);
+}
+
+[data-theme='midnight'] {
+  /* ─── Midnight ─────────────────────────────────────────────
+     Derin okyanus moru — GitHub Dark benzeri
+  ────────────────────────────────────────────────────────── */
+  --bg-primary:   #0D1117;
+  --bg-secondary: #161B22;
+  --bg-tertiary:  #21262D;
+  --bg-hover:     #30363D;
+
+  --text-primary:   #E6EDF3;
+  --text-secondary: #8B949E;
+  --text-muted:     #484F58;
+
+  --accent-primary: #E63946;
+  --accent-hover:   #ff4d5b;
+  --accent-subtle:  rgba(230, 57, 70, 0.12);
+  --accent-glow:    rgba(230, 57, 70, 0.25);
+  --accent-muted:   rgba(230, 57, 70, 0.05);
+
+  --danger:        #f85149;
+  --danger-hover:  #ff7b72;
+  --danger-subtle: rgba(248, 81, 73, 0.1);
+
+  --success:        #3fb950;
+  --success-subtle: rgba(63, 185, 80, 0.1);
+  --warning: #e3b341;
+
+  --glass-bg:            rgba(22, 27, 34, 0.9);
+  --glass-border:        rgba(230, 57, 70, 0.18);
+  --glass-border-subtle: rgba(230, 237, 243, 0.07);
+  --glass-shadow:        0 8px 32px rgba(0, 0, 0, 0.6);
+
+  --bg-gradient:
+    radial-gradient(ellipse 60% 40% at 60% -10%, rgba(56, 139, 253, 0.08), transparent),
+    radial-gradient(ellipse 40% 40% at 10% 100%, rgba(230, 57, 70, 0.06), transparent);
+}
+
+[data-theme='cream-slate'] {
+  /* ─── Cream & Slate ────────────────────────────────────────
+     Sıcak krem zemin + derin lacivert metin — Notion tarzı
+  ────────────────────────────────────────────────────────── */
+  --bg-primary:   #F8F6F1;
+  --bg-secondary: #FFFFFF;
+  --bg-tertiary:  #EDEAE2;
+  --bg-hover:     #E2DDD4;
+
+  --text-primary:   #1E293B;
+  --text-secondary: #475569;
+  --text-muted:     #94A3B8;
+
+  --accent-primary: #E63946;
+  --accent-hover:   #c1121f;
+  --accent-subtle:  rgba(230, 57, 70, 0.09);
+  --accent-glow:    rgba(230, 57, 70, 0.18);
+  --accent-muted:   rgba(230, 57, 70, 0.04);
+
+  --danger:        #dc2626;
+  --danger-hover:  #ef4444;
+  --danger-subtle: rgba(220, 38, 38, 0.09);
+
+  --success:        #16a34a;
+  --success-subtle: rgba(22, 163, 74, 0.09);
+  --warning: #d97706;
+
+  --glass-bg:            rgba(255, 255, 255, 0.92);
+  --glass-border:        rgba(230, 57, 70, 0.15);
+  --glass-border-subtle: rgba(30, 41, 59, 0.08);
+  --glass-shadow:        0 8px 32px rgba(0, 0, 0, 0.07);
+
+  --bg-gradient:
+    radial-gradient(ellipse 60% 40% at 60% -10%, rgba(230, 57, 70, 0.05), transparent),
+    radial-gradient(ellipse 40% 40% at 10% 100%, rgba(148, 163, 184, 0.08), transparent);
+}
+
+[data-theme='stone-indigo'] {
+  /* ─── Stone & Indigo ───────────────────────────────────────
+     Taş gri zemin + indigo accent — Linear/Figma tarzı
+  ────────────────────────────────────────────────────────── */
+  --bg-primary:   #F1F3F5;
+  --bg-secondary: #FFFFFF;
+  --bg-tertiary:  #E9ECEF;
+  --bg-hover:     #DEE2E6;
+
+  --text-primary:   #212529;
+  --text-secondary: #495057;
+  --text-muted:     #868E96;
+
+  --accent-primary: #4361EE;
+  --accent-hover:   #3451D1;
+  --accent-subtle:  rgba(67, 97, 238, 0.1);
+  --accent-glow:    rgba(67, 97, 238, 0.2);
+  --accent-muted:   rgba(67, 97, 238, 0.05);
+
+  --danger:        #e03131;
+  --danger-hover:  #f03e3e;
+  --danger-subtle: rgba(224, 49, 49, 0.09);
+
+  --success:        #2f9e44;
+  --success-subtle: rgba(47, 158, 68, 0.09);
+  --warning: #e67700;
+
+  --glass-bg:            rgba(255, 255, 255, 0.92);
+  --glass-border:        rgba(67, 97, 238, 0.18);
+  --glass-border-subtle: rgba(33, 37, 41, 0.08);
+  --glass-shadow:        0 8px 32px rgba(0, 0, 0, 0.07);
+
+  --bg-gradient:
+    radial-gradient(ellipse 60% 40% at 60% -10%, rgba(67, 97, 238, 0.07), transparent),
+    radial-gradient(ellipse 40% 40% at 10% 100%, rgba(67, 97, 238, 0.04), transparent);
+}
+
+[data-theme='warm-linen'] {
+  /* ─── Warm Linen ───────────────────────────────────────────
+     Keten beyazı zemin + espresso metin — Premium dergi tarzı
+  ────────────────────────────────────────────────────────── */
+  --bg-primary:   #FAF9F5;
+  --bg-secondary: #FFFFFE;
+  --bg-tertiary:  #F0EDE5;
+  --bg-hover:     #E7E2D6;
+
+  --text-primary:   #2C2416;
+  --text-secondary: #5C4D38;
+  --text-muted:     #9C8E7A;
+
+  --accent-primary: #C0392B;
+  --accent-hover:   #a93226;
+  --accent-subtle:  rgba(192, 57, 43, 0.09);
+  --accent-glow:    rgba(192, 57, 43, 0.18);
+  --accent-muted:   rgba(192, 57, 43, 0.04);
+
+  --danger:        #c0392b;
+  --danger-hover:  #e74c3c;
+  --danger-subtle: rgba(192, 57, 43, 0.09);
+
+  --success:        #27ae60;
+  --success-subtle: rgba(39, 174, 96, 0.09);
+  --warning: #d35400;
+
+  --glass-bg:            rgba(255, 255, 254, 0.92);
+  --glass-border:        rgba(192, 57, 43, 0.15);
+  --glass-border-subtle: rgba(44, 36, 22, 0.08);
+  --glass-shadow:        0 8px 32px rgba(0, 0, 0, 0.06);
+
+  --bg-gradient:
+    radial-gradient(ellipse 60% 40% at 60% -10%, rgba(192, 57, 43, 0.05), transparent),
+    radial-gradient(ellipse 40% 40% at 10% 100%, rgba(156, 142, 122, 0.07), transparent);
+}
+
+
+
+/* ── Design Tokens (shared across all themes) ─────────── */
+:root {
   --radius-xs:  4px;
   --radius-sm:  8px;
   --radius-md:  12px;
@@ -46,31 +200,6 @@
   --transition-fast:   0.18s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow:   0.5s  cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* ─── Light Mode ────────────────────────────────────────────
-   Temiz beyaz + kırmızı accent; siyah tonlar çok hafif
-────────────────────────────────────────────────────────── */
-[data-theme='light'] {
-  --bg-primary:   #fdfcfc;
-  --bg-secondary: #ffffff;
-  --bg-tertiary:  #f4eded;
-  --bg-hover:     #ece0e0;
-
-  --text-primary:   #1a1010;
-  --text-secondary: #5c4444;
-  --text-muted:     #b09898;
-
-  --accent-primary: #e63946;
-  --accent-hover:   #c1121f;
-  --accent-subtle:  rgba(230, 57, 70, 0.08);
-  --accent-glow:    rgba(230, 57, 70, 0.18);
-  --accent-muted:   rgba(230, 57, 70, 0.04);
-
-  --glass-bg:            rgba(255, 255, 255, 0.92);
-  --glass-border:        rgba(230, 57, 70, 0.2);
-  --glass-border-subtle: rgba(0, 0, 0, 0.07);
-  --glass-shadow:        0 8px 32px rgba(0, 0, 0, 0.07);
 }
 
 /* ── Reset ──────────────────────────────────────────────── */

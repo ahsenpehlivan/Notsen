@@ -10,9 +10,10 @@ interface BoardColumnProps {
   column: Column;
   tasks: Task[];
   onEditTask: (task: Task) => void;
+  isFiltered?: boolean;
 }
 
-export default function BoardColumn({ column, tasks, onEditTask }: BoardColumnProps) {
+export default function BoardColumn({ column, tasks, onEditTask, isFiltered }: BoardColumnProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const { addTask, deleteColumn, currentUserRole } = useBoardStore();
@@ -45,7 +46,9 @@ export default function BoardColumn({ column, tasks, onEditTask }: BoardColumnPr
       <div className={styles.columnHeader}>
         <div className={styles.columnTitle}>
           <h3>{column.title}</h3>
-          <span className={styles.taskCount}>{tasks.length}</span>
+          <span className={styles.taskCount} style={isFiltered ? { background: 'rgba(230,57,70,0.15)', color: 'var(--accent-primary)' } : {}}>
+            {tasks.length}
+          </span>
         </div>
         {!isViewer && (
           <button

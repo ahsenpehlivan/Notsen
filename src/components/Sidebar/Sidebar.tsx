@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { useBoardStore } from '@/store/useBoardStore';
+import { useBoardStore, ThemeName } from '@/store/useBoardStore';
 import { useAuthStore } from '@/store/useAuthStore';
-import { Plus, LayoutDashboard, Trash2, Sun, Moon, LogOut, UserCircle } from 'lucide-react';
+import { Plus, LayoutDashboard, Trash2, LogOut, UserCircle } from 'lucide-react';
 import styles from './Sidebar.module.css';
 
 interface SidebarProps {
@@ -13,10 +13,18 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ activePage, onPageChange, isOpen, onClose }: SidebarProps) {
-  const { boards, activeBoardId, addBoard, deleteBoard, setActiveBoard, theme, setTheme } = useBoardStore();
+  const { boards, activeBoardId, addBoard, deleteBoard, setActiveBoard, theme, setTheme, unsubscribeFromRealtime } = useBoardStore();
   const { user, logout } = useAuthStore();
   const [isAdding, setIsAdding] = useState(false);
   const [newBoardTitle, setNewBoardTitle] = useState('');
+
+  const THEMES: { id: ThemeName; label: string; swatch: string }[] = [
+    { id: 'charcoal',     label: 'Charcoal',       swatch: '#221c1c' },
+    { id: 'midnight',     label: 'Midnight',        swatch: '#161B22' },
+    { id: 'cream-slate',  label: 'Cream & Slate',   swatch: '#c8bfa8' },
+    { id: 'stone-indigo', label: 'Stone & Indigo',  swatch: '#4361EE' },
+    { id: 'warm-linen',   label: 'Warm Linen',      swatch: '#d4c5a9' },
+  ];
 
   const handleAddBoard = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,10 +35,9 @@ export default function Sidebar({ activePage, onPageChange, isOpen, onClose }: S
     }
   };
 
-  const toggleTheme = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-    document.documentElement.setAttribute('data-theme', newTheme);
+  const handleThemeChange = (t: ThemeName) => {
+    setTheme(t);
+    document.documentElement.setAttribute('data-theme', t);
   };
 
   return (
@@ -123,19 +130,26 @@ export default function Sidebar({ activePage, onPageChange, isOpen, onClose }: S
       )}
 
       <div className={styles.footer}>
-        <button className={styles.themeToggle} onClick={toggleTheme}>
-          {theme === 'dark' ? (
-            <><Sun size={18} /> <span>Aydınlık Tema</span></>
-          ) : (
-            <><Moon size={18} /> <span>Karanlık Tema</span></>
-          )}
-        </button>
+        <div className={styles.themePicker}>
+          <span className={styles.themePickerLabel}>Tema</span>
+          <div className={styles.themeSwatches}>
+            {THEMES.map(t => (
+              <button
+                key={t.id}
+                onClick={() => handleThemeChange(t.id)}
+                className={`${styles.themeSwatch} ${theme === t.id ? styles.themeSwatchActive : ''}`}
+                title={t.label}
+                style={{ background: t.swatch }}
+              />
+            ))}
+          </div>
+        </div>
 
         <div className={styles.userInfo}>
           <div className={styles.avatar}>{user?.email?.charAt(0).toUpperCase()}</div>
           <div className={styles.userDetails}>
             <span className={styles.userName}>{user?.email}</span>
-            <button onClick={logout} className={styles.logoutBtn}>
+            <button onClick={() => { unsubscribeFromRealtime(); logout(); }} className={styles.logoutBtn}>
               <LogOut size={14} /> Çıkış
             </button>
           </div>

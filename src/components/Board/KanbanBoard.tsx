@@ -16,7 +16,7 @@ import { SortableContext, arrayMove, sortableKeyboardCoordinates } from '@dnd-ki
 import { useBoardStore, Task } from '@/store/useBoardStore';
 import BoardColumn from './BoardColumn';
 import BoardCard from './BoardCard';
-import { Plus, Settings2, Menu, UserPlus, Tag } from 'lucide-react';
+import { Plus, Settings2, Menu, UserPlus, Tag, Search, X, ChevronDown } from 'lucide-react';
 import styles from './Board.module.css';
 import CardModal from './CardModal';
 import ColumnReorderModal from './ColumnReorderModal';
@@ -28,7 +28,7 @@ interface KanbanBoardProps {
 }
 
 export default function KanbanBoard({ onOpenMenu }: KanbanBoardProps = {}) {
-  const { activeBoardId, boards, columns, tasks, setColumns, setTasks, addColumn, currentUserRole } = useBoardStore();
+  const { activeBoardId, boards, columns, tasks, setColumns, setTasks, addColumn, currentUserRole, setIsDragging } = useBoardStore();
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [newColumnTitle, setNewColumnTitle] = useState('');
@@ -36,6 +36,12 @@ export default function KanbanBoard({ onOpenMenu }: KanbanBoardProps = {}) {
   const [isReorderingColumns, setIsReorderingColumns] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isLabelsManagerOpen, setIsLabelsManagerOpen] = useState(false);
+
+  // Search & Filter
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterLabels, setFilterLabels] = useState<string[]>([]);
+  const [filterAssignee, setFilterAssignee] = useState('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -58,11 +64,41 @@ export default function KanbanBoard({ onOpenMenu }: KanbanBoardProps = {}) {
   const boardColumns = columns.filter((c) => c.boardId === activeBoardId);
   const boardTasks = tasks.filter((t) => t.boardId === activeBoardId);
 
+  // Filtreli görevler
+  const filteredTasks = boardTasks.filter(task => {
+    const q = searchQuery.toLowerCase().trim();
+    if (q && !task.title.toLowerCase().includes(q) && !task.description?.toLowerCase().includes(q)) return false;
+    if (filterLabels.length > 0 && !filterLabels.every(l => (task.tags || []).includes(l))) return false;
+    if (filterAssignee && task.assignee !== filterAssignee) return false;
+    return true;
+  });
+
+  const hasActiveFilter = searchQuery.trim() !== '' || filterLabels.length > 0 || filterAssignee !== '';
+  const filteredCount = boardTasks.length - filteredTasks.length;
+
+  // Mevcut tüm sorumlu kişiler (bu panodaki görevlerden)
+  const allAssignees = Array.from(new Set(boardTasks.map(t => t.assignee).filter(Boolean))) as string[];
+  const activeBoard = boards.find(b => b.id === activeBoardId);
+  const boardLabels = activeBoard?.labels || [];
+
+  const toggleFilterLabel = (name: string) => {
+    setFilterLabels(prev => prev.includes(name) ? prev.filter(l => l !== name) : [...prev, name]);
+  };
+
+  const clearAllFilters = () => {
+    setSearchQuery('');
+    setFilterLabels([]);
+    setFilterAssignee('');
+  };
+
   const handleDragStart = (event: DragStartEvent) => {
     if (isViewer) return;
     const { active } = event;
     const task = boardTasks.find((t) => t.id === active.id);
-    if (task) setActiveTask(task);
+    if (task) {
+      setActiveTask(task);
+      setIsDragging(true);
+    }
   };
 
   const handleDragOver = (event: DragOverEvent) => {
@@ -116,6 +152,7 @@ export default function KanbanBoard({ onOpenMenu }: KanbanBoardProps = {}) {
 
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveTask(null);
+    setIsDragging(false);
     if (isViewer || !activeBoardId) return;
     
     // DB senkronizasyonunu yap
@@ -130,8 +167,6 @@ export default function KanbanBoard({ onOpenMenu }: KanbanBoardProps = {}) {
       setIsAddingColumn(false);
     }
   };
-
-  const activeBoard = boards.find(b => b.id === activeBoardId);
 
   if (!activeBoardId || !activeBoard) {
     return (
@@ -186,6 +221,89 @@ export default function KanbanBoard({ onOpenMenu }: KanbanBoardProps = {}) {
         </div>
       </header>
 
+      {/* ── Search & Filter Bar ── */}
+      <div className={styles.searchBar}>
+        <div className={styles.searchInput}>
+          <Search size={15} className={styles.searchIcon} />
+          <input
+            type="text"
+            placeholder="Görev ara..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} className={styles.clearInputBtn}><X size={13} /></button>
+          )}
+        </div>
+
+        <button
+          className={`${styles.filterToggleBtn} ${isFilterOpen ? styles.filterToggleBtnActive : ''}`}
+          onClick={() => setIsFilterOpen(v => !v)}
+        >
+          Filtrele <ChevronDown size={14} style={{ transform: isFilterOpen ? 'rotate(180deg)' : 'rotate(0)', transition: '0.2s' }} />
+          {hasActiveFilter && <span className={styles.filterDot} />}
+        </button>
+
+        {hasActiveFilter && (
+          <button onClick={clearAllFilters} className={styles.clearFilterBtn}>
+            <X size={13} /> Temizle
+          </button>
+        )}
+
+        {hasActiveFilter && (
+          <span className={styles.filterResultText}>
+            {filteredCount > 0 ? `${filteredCount} görev gizlendi` : 'Tüm görevler görünüyor'}
+          </span>
+        )}
+      </div>
+
+      {isFilterOpen && (
+        <div className={styles.filterPanel}>
+          {boardLabels.length > 0 && (
+            <div className={styles.filterGroup}>
+              <span className={styles.filterGroupLabel}>Etiket</span>
+              <div className={styles.filterChips}>
+                {boardLabels.map(label => (
+                  <button
+                    key={label.id}
+                    onClick={() => toggleFilterLabel(label.name)}
+                    className={styles.filterChip}
+                    style={filterLabels.includes(label.name) ? { backgroundColor: label.color, color: '#1E293B', borderColor: label.color } : {}}
+                  >
+                    {label.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {allAssignees.length > 0 && (
+            <div className={styles.filterGroup}>
+              <span className={styles.filterGroupLabel}>Sorumlu</span>
+              <div className={styles.filterChips}>
+                <button
+                  onClick={() => setFilterAssignee('')}
+                  className={styles.filterChip}
+                  style={filterAssignee === '' ? { backgroundColor: 'var(--accent-primary)', color: '#fff', borderColor: 'var(--accent-primary)' } : {}}
+                >
+                  Hepsi
+                </button>
+                {allAssignees.map(email => (
+                  <button
+                    key={email}
+                    onClick={() => setFilterAssignee(filterAssignee === email ? '' : email)}
+                    className={styles.filterChip}
+                    style={filterAssignee === email ? { backgroundColor: 'var(--accent-primary)', color: '#fff', borderColor: 'var(--accent-primary)' } : {}}
+                  >
+                    {email.split('@')[0]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <main className={styles.boardScrollable}>
         <div className={styles.columnsWrapper}>
           <DndContext
@@ -199,8 +317,9 @@ export default function KanbanBoard({ onOpenMenu }: KanbanBoardProps = {}) {
               <BoardColumn
                 key={col.id}
                 column={col}
-                tasks={boardTasks.filter((t) => t.columnId === col.id)}
+                tasks={filteredTasks.filter((t) => t.columnId === col.id)}
                 onEditTask={setEditingTask}
+                isFiltered={hasActiveFilter}
               />
             ))}
 
