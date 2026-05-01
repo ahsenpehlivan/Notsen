@@ -7,6 +7,12 @@ export type ThemeName = 'charcoal' | 'midnight' | 'cream-slate' | 'stone-indigo'
 
 const VALID_THEMES: ThemeName[] = ['charcoal', 'midnight', 'cream-slate', 'stone-indigo', 'warm-linen'];
 
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
 export const PASTEL_COLORS = [
   '#FCA5A5', // Red
   '#FCD34D', // Yellow
@@ -52,6 +58,7 @@ export interface Task {
   dueDate?: string;
   tags?: string[];
   assignee?: string;
+  checklist?: ChecklistItem[];
   position: number;
   _dbColumnId?: Id;
   _dbPosition?: number;
@@ -75,6 +82,7 @@ interface BoardState {
 
   addBoard: (userId: string, title: string) => Promise<void>;
   deleteBoard: (id: Id) => Promise<void>;
+  updateBoardTitle: (id: Id, title: string) => Promise<void>;
   setActiveBoard: (id: Id) => void;
   inviteToBoard: (boardId: Id, email: string, role: 'viewer' | 'editor') => Promise<{ success: boolean; error?: string }>;
   fetchMembers: (boardId: Id) => Promise<void>;
@@ -90,7 +98,7 @@ interface BoardState {
 
   addTask: (boardId: Id, columnId: Id, title: string, description?: string, dueDate?: string, tags?: string[], assignee?: string) => Promise<void>;
   deleteTask: (id: Id) => Promise<void>;
-  updateTask: (id: Id, title: string, description: string, dueDate?: string, tags?: string[], assignee?: string) => Promise<void>;
+  updateTask: (id: Id, title: string, description: string, dueDate?: string, tags?: string[], assignee?: string, checklist?: ChecklistItem[]) => Promise<void>;
   moveTask: (taskId: Id, toColumnId: Id) => Promise<void>;
   updateBoardLabels: (boardId: Id, newLabels: BoardLabel[], oldLabelName?: string, newLabelName?: string) => Promise<void>;
   syncTaskOrder: (boardId: Id) => Promise<void>;
@@ -227,6 +235,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       dueDate: t.due_date || '',
       tags: t.tags || [],
       assignee: t.assignee || '',
+      checklist: t.checklist || [],
       position: t.position,
       _dbColumnId: t.column_id,
       _dbPosition: t.position,
@@ -297,6 +306,14 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         tasks: state.tasks.filter(t => t.boardId !== id),
       };
     });
+  },
+
+  updateBoardTitle: async (id, title) => {
+    if (!title.trim()) return;
+    await supabase.from('boards').update({ title: title.trim() }).eq('id', id);
+    set(state => ({
+      boards: state.boards.map(b => b.id === id ? { ...b, title: title.trim() } : b),
+    }));
   },
 
   inviteToBoard: async (boardId, email, role) => {
@@ -420,12 +437,12 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     set(state => ({ tasks: state.tasks.filter(t => t.id !== id) }));
   },
 
-  updateTask: async (id, title, description, dueDate = '', tags = [], assignee = '') => {
+  updateTask: async (id, title, description, dueDate = '', tags = [], assignee = '', checklist = []) => {
     await supabase.from('tasks').update({
-      title, description, due_date: dueDate || null, tags, assignee
+      title, description, due_date: dueDate || null, tags, assignee, checklist
     }).eq('id', id);
     set(state => ({
-      tasks: state.tasks.map(t => t.id === id ? { ...t, title, description, dueDate, tags, assignee } : t),
+      tasks: state.tasks.map(t => t.id === id ? { ...t, title, description, dueDate, tags, assignee, checklist } : t),
     }));
   },
 
@@ -577,6 +594,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
                   dueDate: d.due_date || '',
                   tags: d.tags || [],
                   assignee: d.assignee || '',
+                  checklist: d.checklist || [],
                 };
               }
               return {
@@ -586,6 +604,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
                 dueDate: d.due_date || '',
                 tags: d.tags || [],
                 assignee: d.assignee || '',
+                checklist: d.checklist || [],
                 columnId: d.column_id,
                 position: d.position,
                 _dbColumnId: d.column_id,

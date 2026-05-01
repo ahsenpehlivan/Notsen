@@ -28,7 +28,7 @@ interface KanbanBoardProps {
 }
 
 export default function KanbanBoard({ onOpenMenu }: KanbanBoardProps = {}) {
-  const { activeBoardId, boards, columns, tasks, setColumns, setTasks, addColumn, currentUserRole, setIsDragging } = useBoardStore();
+  const { activeBoardId, boards, columns, tasks, setColumns, setTasks, addColumn, currentUserRole, setIsDragging, updateBoardTitle } = useBoardStore();
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [newColumnTitle, setNewColumnTitle] = useState('');
@@ -36,6 +36,10 @@ export default function KanbanBoard({ onOpenMenu }: KanbanBoardProps = {}) {
   const [isReorderingColumns, setIsReorderingColumns] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isLabelsManagerOpen, setIsLabelsManagerOpen] = useState(false);
+
+  // Board title inline editing
+  const [isEditingBoardTitle, setIsEditingBoardTitle] = useState(false);
+  const [boardTitleDraft, setBoardTitleDraft] = useState('');
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -190,7 +194,32 @@ export default function KanbanBoard({ onOpenMenu }: KanbanBoardProps = {}) {
               <Menu size={20} />
             </button>
           )}
-          <h2>{activeBoard.title}</h2>
+          {isEditingBoardTitle && !isViewer ? (
+            <input
+              autoFocus
+              className={styles.boardTitleInput}
+              value={boardTitleDraft}
+              onChange={e => setBoardTitleDraft(e.target.value)}
+              onBlur={() => {
+                if (boardTitleDraft.trim() && activeBoardId) updateBoardTitle(activeBoardId, boardTitleDraft);
+                setIsEditingBoardTitle(false);
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); }
+                if (e.key === 'Escape') { setIsEditingBoardTitle(false); }
+              }}
+            />
+          ) : (
+            <h2
+              onClick={() => {
+                if (!isViewer) { setBoardTitleDraft(activeBoard.title); setIsEditingBoardTitle(true); }
+              }}
+              title={!isViewer ? 'Düzenlemek için tıklayın' : ''}
+              style={!isViewer ? { cursor: 'text' } : {}}
+            >
+              {activeBoard.title}
+            </h2>
+          )}
         </div>
         <div className={styles.headerActions}>
           <button 
@@ -204,14 +233,14 @@ export default function KanbanBoard({ onOpenMenu }: KanbanBoardProps = {}) {
             <>
               <button 
                 className={styles.addCardBtn} 
-                style={{ width: 'auto', padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.05)', marginRight: '8px' }}
+                style={{ width: 'auto', padding: '0.5rem 1rem', background: 'var(--bg-tertiary)', marginRight: '8px' }}
                 onClick={() => setIsLabelsManagerOpen(true)}
               >
                 <Tag size={16} /> <span className={styles.hideOnMobile}>Etiketleri Düzenle</span>
               </button>
               <button 
                 className={styles.addCardBtn} 
-                style={{ width: 'auto', padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.05)' }}
+                style={{ width: 'auto', padding: '0.5rem 1rem', background: 'var(--bg-tertiary)' }}
                 onClick={() => setIsReorderingColumns(true)}
               >
                 <Settings2 size={16} /> <span className={styles.hideOnMobile}>Sütunları Düzenle</span>

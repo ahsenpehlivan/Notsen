@@ -106,3 +106,6 @@ ALTER TABLE public.boards ADD COLUMN IF NOT EXISTS labels jsonb DEFAULT '["Bug",
 ALTER PUBLICATION supabase_realtime ADD TABLE public.tasks;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.columns;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.boards;
+
+-- 9. tasks tablosuna checklist (alt görevler) sütunu ekle
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS checklist jsonb DEFAULT '[]'::jsonb;
