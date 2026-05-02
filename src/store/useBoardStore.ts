@@ -13,6 +13,18 @@ export interface ChecklistItem {
   done: boolean;
 }
 
+export interface ActivityLog {
+  id: string;
+  boardId: Id;
+  userEmail: string;
+  action: string;
+  entityType: 'task' | 'column' | 'board' | 'member' | 'label';
+  entityId?: string;
+  entityTitle?: string;
+  metadata?: Record<string, string>;
+  createdAt: string;
+}
+
 export const PASTEL_COLORS = [
   '#FCA5A5', // Red
   '#FCD34D', // Yellow
@@ -105,6 +117,10 @@ interface BoardState {
 
   subscribeToRealtime: (boardIds: Id[]) => void;
   unsubscribeFromRealtime: () => void;
+
+  activityLogs: ActivityLog[];
+  fetchActivityLogs: (boardId: Id) => Promise<void>;
+  _logActivity: (boardId: Id, action: string, entityType: ActivityLog['entityType'], entityId?: string, entityTitle?: string, metadata?: Record<string, string>) => Promise<void>;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -150,6 +166,55 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   tasks: [],
   members: [],
   currentUserRole: null,
+  activityLogs: [],
+
+  _logActivity: async (boardId, action, entityType, entityId, entityTitle, metadata) => {
+    const email = useAuthStore.getState().user?.email || 'Bilinmeyen';
+    const { error } = await supabase.from('activity_logs').insert({
+      board_id: boardId,
+      user_email: email,
+      action,
+      entity_type: entityType,
+      entity_id: entityId || null,
+      entity_title: entityTitle || null,
+      metadata: metadata || {},
+    });
+    if (error) return;
+    // Panelin aciksa state'i anlik guncelle
+    const newLog: ActivityLog = {
+      id: generateId(),
+      boardId,
+      userEmail: email,
+      action,
+      entityType,
+      entityId,
+      entityTitle,
+      metadata,
+      createdAt: new Date().toISOString(),
+    };
+    set(state => ({ activityLogs: [newLog, ...state.activityLogs].slice(0, 100) }));
+  },
+
+  fetchActivityLogs: async (boardId) => {
+    const { data } = await supabase
+      .from('activity_logs')
+      .select('*')
+      .eq('board_id', boardId)
+      .order('created_at', { ascending: false })
+      .limit(100);
+    const mapped: ActivityLog[] = (data || []).map(r => ({
+      id: r.id,
+      boardId: r.board_id,
+      userEmail: r.user_email,
+      action: r.action,
+      entityType: r.entity_type,
+      entityId: r.entity_id,
+      entityTitle: r.entity_title,
+      metadata: r.metadata,
+      createdAt: r.created_at,
+    }));
+    set({ activityLogs: mapped });
+  },
 
   loadUserData: async (userId: string, email: string) => {
     set({ isLoading: true });
@@ -310,10 +375,13 @@ export const useBoardStore = create<BoardState>((set, get) => ({
 
   updateBoardTitle: async (id, title) => {
     if (!title.trim()) return;
+    const { boards } = get();
+    const oldBoard = boards.find(b => b.id === id);
     await supabase.from('boards').update({ title: title.trim() }).eq('id', id);
     set(state => ({
       boards: state.boards.map(b => b.id === id ? { ...b, title: title.trim() } : b),
     }));
+    if (oldBoard) get()._logActivity(id, 'board_renamed', 'board', id, title.trim(), { old_title: oldBoard.title, new_title: title.trim() });
   },
 
   inviteToBoard: async (boardId, email, role) => {
@@ -326,6 +394,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         return { success: false, error: error.message };
       }
       get().fetchMembers(boardId);
+      get()._logActivity(boardId, 'member_invited', 'member', undefined, email, { role });
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message };
@@ -377,21 +446,29 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     if (error || !data) return;
     const newCol: Column = { id: data.id, boardId: data.board_id, title: data.title, position: data.position };
     set(state => ({ columns: [...state.columns, newCol] }));
+    get()._logActivity(boardId, 'column_created', 'column', data.id, title);
   },
 
   deleteColumn: async (id) => {
+    const { columns, activeBoardId } = get();
+    const col = columns.find(c => c.id === id);
     await supabase.from('columns').delete().eq('id', id);
     set(state => ({
       columns: state.columns.filter(c => c.id !== id),
       tasks: state.tasks.filter(t => t.columnId !== id),
     }));
+    if (col && activeBoardId) get()._logActivity(activeBoardId, 'column_deleted', 'column', id, col.title);
   },
 
   updateColumn: async (id, title) => {
+    const { columns, activeBoardId } = get();
+    const oldCol = columns.find(c => c.id === id);
     await supabase.from('columns').update({ title }).eq('id', id);
     set(state => ({
       columns: state.columns.map(c => c.id === id ? { ...c, title } : c),
     }));
+    if (activeBoardId && oldCol && oldCol.title !== title)
+      get()._logActivity(activeBoardId, 'column_renamed', 'column', id, title, { old_title: oldCol.title, new_title: title });
   },
 
   reorderColumns: async (boardId, newOrder) => {
@@ -425,25 +502,32 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       id: data.id, boardId: data.board_id, columnId: data.column_id,
       title: data.title, description: data.description || '',
       dueDate: data.due_date || '', tags: data.tags || [], assignee: data.assignee || '',
+      checklist: data.checklist || [],
       position: data.position,
       _dbColumnId: data.column_id,
       _dbPosition: data.position,
     };
     set(state => ({ tasks: [...state.tasks, newTask] }));
+    get()._logActivity(boardId, 'task_created', 'task', data.id, title);
   },
 
   deleteTask: async (id) => {
+    const { tasks, activeBoardId } = get();
+    const task = tasks.find(t => t.id === id);
     await supabase.from('tasks').delete().eq('id', id);
     set(state => ({ tasks: state.tasks.filter(t => t.id !== id) }));
+    if (task && activeBoardId) get()._logActivity(activeBoardId, 'task_deleted', 'task', id, task.title);
   },
 
   updateTask: async (id, title, description, dueDate = '', tags = [], assignee = '', checklist = []) => {
+    const { activeBoardId } = get();
     await supabase.from('tasks').update({
       title, description, due_date: dueDate || null, tags, assignee, checklist
     }).eq('id', id);
     set(state => ({
       tasks: state.tasks.map(t => t.id === id ? { ...t, title, description, dueDate, tags, assignee, checklist } : t),
     }));
+    if (activeBoardId) get()._logActivity(activeBoardId, 'task_updated', 'task', id, title);
   },
 
   moveTask: async (taskId, toColumnId) => {
@@ -504,11 +588,12 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   },
 
   syncTaskOrder: async (boardId) => {
-    const { tasks } = get();
+    const { tasks, columns } = get();
     const boardTasks = tasks.filter(t => t.boardId === boardId);
     
     const updatedTasks = [...tasks];
     const promises: Promise<any>[] = [];
+    const moveLogItems: { taskTitle: string; fromCol: string; toCol: string }[] = [];
 
     const columnGroups: Record<string, Task[]> = {};
     boardTasks.forEach(t => {
@@ -518,7 +603,6 @@ export const useBoardStore = create<BoardState>((set, get) => ({
 
     Object.entries(columnGroups).forEach(([colId, colTasks]) => {
       colTasks.forEach((task, index) => {
-        // Yalnızca db durumu ile farklılık gösterenleri güncelle
         if (task._dbColumnId !== colId || task._dbPosition !== index) {
           const taskIdx = updatedTasks.findIndex(t => t.id === task.id);
           if (taskIdx !== -1) {
@@ -530,7 +614,12 @@ export const useBoardStore = create<BoardState>((set, get) => ({
               _dbPosition: index
             };
           }
-
+          // Sütun degisikligini tespit et (sıralama değil sadece kolon değişimi)
+          if (task._dbColumnId && task._dbColumnId !== colId) {
+            const fromColTitle = columns.find(c => c.id === task._dbColumnId)?.title || '?';
+            const toColTitle = columns.find(c => c.id === colId)?.title || '?';
+            moveLogItems.push({ taskTitle: task.title, fromCol: fromColTitle, toCol: toColTitle });
+          }
           promises.push(
             supabase.from('tasks').update({ column_id: colId, position: index }).eq('id', task.id) as unknown as Promise<any>
           );
@@ -541,6 +630,10 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     if (promises.length > 0) {
       set({ tasks: updatedTasks });
       await Promise.all(promises);
+      // Log kart taşıma olayları
+      for (const item of moveLogItems) {
+        get()._logActivity(boardId, 'task_moved', 'task', undefined, item.taskTitle, { from_column: item.fromCol, to_column: item.toCol });
+      }
     }
   },
 

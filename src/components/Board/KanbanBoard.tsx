@@ -16,12 +16,13 @@ import { SortableContext, arrayMove, sortableKeyboardCoordinates } from '@dnd-ki
 import { useBoardStore, Task } from '@/store/useBoardStore';
 import BoardColumn from './BoardColumn';
 import BoardCard from './BoardCard';
-import { Plus, Settings2, Menu, UserPlus, Tag, Search, X, ChevronDown } from 'lucide-react';
+import { Plus, Settings2, Menu, UserPlus, Tag, Search, X, ChevronDown, Activity } from 'lucide-react';
 import styles from './Board.module.css';
 import CardModal from './CardModal';
 import ColumnReorderModal from './ColumnReorderModal';
 import InviteModal from './InviteModal';
 import LabelsManagerModal from './LabelsManagerModal';
+import ActivityPanel from './ActivityPanel';
 
 interface KanbanBoardProps {
   onOpenMenu?: () => void;
@@ -36,6 +37,7 @@ export default function KanbanBoard({ onOpenMenu }: KanbanBoardProps = {}) {
   const [isReorderingColumns, setIsReorderingColumns] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isLabelsManagerOpen, setIsLabelsManagerOpen] = useState(false);
+  const [isActivityOpen, setIsActivityOpen] = useState(false);
 
   // Board title inline editing
   const [isEditingBoardTitle, setIsEditingBoardTitle] = useState(false);
@@ -222,6 +224,13 @@ export default function KanbanBoard({ onOpenMenu }: KanbanBoardProps = {}) {
           )}
         </div>
         <div className={styles.headerActions}>
+          <button
+            className={styles.addCardBtn}
+            style={{ width: 'auto', padding: '0.5rem 1rem', background: isActivityOpen ? 'var(--accent-primary)' : 'var(--bg-tertiary)', color: isActivityOpen ? '#fff' : 'var(--text-secondary)' }}
+            onClick={() => setIsActivityOpen(o => !o)}
+          >
+            <Activity size={16} /> <span className={styles.hideOnMobile}>Aktivite</span>
+          </button>
           <button 
             className={styles.addCardBtn} 
             style={{ width: 'auto', padding: '0.5rem 1rem', background: 'var(--accent-subtle)', color: 'var(--accent-hover)' }}
@@ -418,6 +427,10 @@ export default function KanbanBoard({ onOpenMenu }: KanbanBoardProps = {}) {
           boardId={activeBoardId}
           onClose={() => setIsLabelsManagerOpen(false)}
         />
+      )}
+
+      {isActivityOpen && (
+        <ActivityPanel onClose={() => setIsActivityOpen(false)} />
       )}
     </div>
   );

@@ -109,3 +109,38 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.boards;
 
 -- 9. tasks tablosuna checklist (alt görevler) sütunu ekle
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS checklist jsonb DEFAULT '[]'::jsonb;
+
+-- 10. Aktivite Geçmişi tablosu
+CREATE TABLE IF NOT EXISTS public.activity_logs (
+  id           uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  board_id     uuid REFERENCES public.boards(id) ON DELETE CASCADE NOT NULL,
+  user_email   text,
+  action       text NOT NULL,
+  entity_type  text NOT NULL,
+  entity_id    text,
+  entity_title text,
+  metadata     jsonb DEFAULT '{}'::jsonb,
+  created_at   timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
+
+-- Pano sahibi ve üyeler okuyabilir
+CREATE POLICY "board_members_can_read_logs" ON public.activity_logs
+  FOR SELECT USING (
+    board_id IN (
+      SELECT id FROM public.boards WHERE user_id = auth.uid()
+      UNION
+      SELECT board_id FROM public.board_members WHERE user_email = auth.email()
+    )
+  );
+
+-- Pano sahibi ve üyeler yazabilir
+CREATE POLICY "board_members_can_insert_logs" ON public.activity_logs
+  FOR INSERT WITH CHECK (
+    board_id IN (
+      SELECT id FROM public.boards WHERE user_id = auth.uid()
+      UNION
+      SELECT board_id FROM public.board_members WHERE user_email = auth.email()
+    )
+  );
