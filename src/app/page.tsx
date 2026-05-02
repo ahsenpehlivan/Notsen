@@ -8,12 +8,14 @@ import Login from '@/components/Auth/Login';
 import KanbanBoard from '@/components/Board/KanbanBoard';
 import Sidebar from '@/components/Sidebar/Sidebar';
 import ProfilePage from '@/components/Profile/ProfilePage';
+import LandingPage from '@/components/Landing/LandingPage';
 import styles from './page.module.css';
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [activePage, setActivePage] = useState<'boards' | 'profile'>('boards');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
   const { user, setUser } = useAuthStore();
   const { theme, loadUserData } = useBoardStore();
 
@@ -54,7 +56,10 @@ export default function Home() {
   }
 
   if (!user) {
-    return <Login />;
+    if (showLogin) {
+      return <Login />;
+    }
+    return <LandingPage onGetStarted={() => setShowLogin(true)} />;
   }
 
   return (

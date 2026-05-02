@@ -13,8 +13,27 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Notsen — Notlarını Yönet",
-  description: "Notlarını organize et, projelerini takip et. Notsen Kanban uygulaması.",
+  title: "Notsen — Ücretsiz To-Do List & Hızlı Görev Takip Uygulaması",
+  description:
+    "Notsen ile görevlerini, projelerini ve notlarını ücretsiz yönet. Reklamsız yapılacaklar listesi, Kanban board ve hızlı görev takip uygulaması. Ücretsiz kayıt ol.",
+  keywords: [
+    "ücretsiz to-do list",
+    "hızlı görev takip uygulaması",
+    "reklamsız yapılacaklar listesi",
+    "görev yönetim uygulaması",
+    "kanban board ücretsiz",
+    "to do list türkçe",
+    "proje takip uygulaması",
+    "ücretsiz kanban",
+    "yapılacaklar listesi uygulaması",
+    "görev planlayıcı",
+  ],
+  openGraph: {
+    title: "Notsen — Ücretsiz To-Do List & Hızlı Görev Takip",
+    description:
+      "Reklamsız, ücretsiz Kanban board ve görev takip uygulaması. Projelerini ve notlarını kolayca yönet.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
