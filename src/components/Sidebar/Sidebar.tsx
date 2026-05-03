@@ -2,8 +2,57 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { useBoardStore, ThemeName } from '@/store/useBoardStore';
 import { useAuthStore } from '@/store/useAuthStore';
-import { Plus, LayoutDashboard, Trash2, LogOut, UserCircle } from 'lucide-react';
+import { Plus, LayoutDashboard, Trash2, LogOut, UserCircle, GripVertical } from 'lucide-react';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import styles from './Sidebar.module.css';
+
+interface SortableBoardItemProps {
+  board: any;
+  isActive: boolean;
+  onSelect: () => void;
+  onDelete: (e: React.MouseEvent) => void;
+  showDelete: boolean;
+}
+
+function SortableBoardItem({ board, isActive, onSelect, onDelete, showDelete }: SortableBoardItemProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: board.id });
+  
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    ...(isDragging ? { zIndex: 100, position: 'relative' as const } : {})
+  };
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={`${styles.boardItem} ${isActive ? styles.active : ''} ${isDragging ? styles.dragging : ''}`}
+    >
+      <div {...attributes} {...listeners} className={styles.boardDragHandle}>
+        <GripVertical size={14} />
+      </div>
+      <button
+        className={styles.boardLink}
+        onClick={onSelect}
+      >
+        <LayoutDashboard size={18} />
+        <span className={styles.boardTitle}>{board.title}</span>
+      </button>
+      {showDelete && (
+        <button
+          className={styles.deleteBtn}
+          onClick={onDelete}
+          title="Panoyu Sil"
+        >
+          <Trash2 size={16} />
+        </button>
+      )}
+    </li>
+  );
+}
 
 interface SidebarProps {
   activePage: 'boards' | 'profile';
@@ -13,7 +62,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ activePage, onPageChange, isOpen, onClose }: SidebarProps) {
-  const { boards, activeBoardId, addBoard, deleteBoard, setActiveBoard, theme, setTheme, unsubscribeFromRealtime } = useBoardStore();
+  const { boards, activeBoardId, addBoard, deleteBoard, setActiveBoard, theme, setTheme, unsubscribeFromRealtime, reorderBoards } = useBoardStore();
   const { user, logout } = useAuthStore();
   const [isAdding, setIsAdding] = useState(false);
   const [newBoardTitle, setNewBoardTitle] = useState('');
@@ -24,6 +73,14 @@ export default function Sidebar({ activePage, onPageChange, isOpen, onClose }: S
     { id: 'cream-slate',  label: 'Cream & Slate',   swatch: '#c8bfa8' },
     { id: 'stone-indigo', label: 'Stone & Indigo',  swatch: '#4361EE' },
     { id: 'warm-linen',   label: 'Warm Linen',      swatch: '#d4c5a9' },
+    { id: 'cyberpunk',    label: 'Cyberpunk',       swatch: '#f000ff' },
+    { id: 'nordic',       label: 'Nordic',          swatch: '#88C0D0' },
+    { id: 'sakura',       label: 'Sakura',          swatch: '#FF6699' },
+    { id: 'hacker',       label: 'Hacker',          swatch: '#00FF00' },
+    { id: 'sunset',       label: 'Sunset',          swatch: '#FF6B6B' },
+    { id: 'deep-ocean',   label: 'Deep Ocean',      swatch: '#0A1128' },
+    { id: 'high-contrast',label: 'High Contrast',   swatch: '#FFFF00' },
+    { id: 'amber-wood',   label: 'Amber Wood',      swatch: '#E67E22' },
   ];
 
   const handleAddBoard = async (e: React.FormEvent) => {
@@ -38,6 +95,22 @@ export default function Sidebar({ activePage, onPageChange, isOpen, onClose }: S
   const handleThemeChange = (t: ThemeName) => {
     setTheme(t);
     document.documentElement.setAttribute('data-theme', t);
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    
+    const oldIndex = boards.findIndex(b => b.id === active.id);
+    const newIndex = boards.findIndex(b => b.id === over.id);
+    
+    const newBoards = arrayMove(boards, oldIndex, newIndex);
+    await reorderBoards(newBoards);
   };
 
   return (
@@ -96,36 +169,31 @@ export default function Sidebar({ activePage, onPageChange, isOpen, onClose }: S
             </form>
           )}
 
-          <ul className={styles.boardList}>
-            {boards.map(board => (
-              <li
-                key={board.id}
-                className={`${styles.boardItem} ${board.id === activeBoardId ? styles.active : ''}`}
-              >
-                <button
-                  className={styles.boardLink}
-                  onClick={() => setActiveBoard(board.id)}
-                >
-                  <LayoutDashboard size={18} />
-                  <span className={styles.boardTitle}>{board.title}</span>
-                </button>
-                {boards.length > 1 && (
-                  <button
-                    className={styles.deleteBtn}
-                    onClick={(e) => {
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={boards.map(b => b.id)} strategy={verticalListSortingStrategy}>
+              <ul className={styles.boardList}>
+                {boards.map((board) => (
+                  <SortableBoardItem
+                    key={board.id}
+                    board={board}
+                    isActive={board.id === activeBoardId}
+                    onSelect={() => setActiveBoard(board.id)}
+                    showDelete={boards.length > 1}
+                    onDelete={(e) => {
                       e.stopPropagation();
                       if (window.confirm(`"${board.title}" panosunu silmek istediğinize emin misiniz?`)) {
                         deleteBoard(board.id);
                       }
                     }}
-                    title="Panoyu Sil"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
+                  />
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
         </div>
       )}
 

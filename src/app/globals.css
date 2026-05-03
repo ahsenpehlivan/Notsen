@@ -186,6 +186,299 @@
     radial-gradient(ellipse 40% 40% at 10% 100%, rgba(156, 142, 122, 0.07), transparent);
 }
 
+[data-theme='cyberpunk'] {
+  /* ─── Cyberpunk ───────────────────────────────────────────
+     Karanlık zemin + Neon pembe/mavi accent — Dinamik ve göz alıcı
+  ────────────────────────────────────────────────────────── */
+  --bg-primary:   #09090b;
+  --bg-secondary: #121217;
+  --bg-tertiary:  #181820;
+  --bg-hover:     #22222d;
+
+  --text-primary:   #fdf8f5;
+  --text-secondary: #a1a1aa;
+  --text-muted:     #71717a;
+
+  --accent-primary: #f000ff;
+  --accent-hover:   #ff33ff;
+  --accent-subtle:  rgba(240, 0, 255, 0.15);
+  --accent-glow:    rgba(240, 0, 255, 0.4);
+  --accent-muted:   rgba(240, 0, 255, 0.05);
+
+  --danger:        #ff003c;
+  --danger-hover:  #ff3366;
+  --danger-subtle: rgba(255, 0, 60, 0.15);
+
+  --success:        #00ff9d;
+  --success-subtle: rgba(0, 255, 157, 0.1);
+  --warning: #fce803;
+
+  --glass-bg:            rgba(18, 18, 23, 0.85);
+  --glass-border:        rgba(0, 255, 255, 0.3);
+  --glass-border-subtle: rgba(255, 255, 255, 0.05);
+  --glass-shadow:        0 8px 32px rgba(0, 0, 0, 0.8);
+
+  --bg-gradient:
+    radial-gradient(ellipse 50% 40% at 80% 0%, rgba(240, 0, 255, 0.1), transparent),
+    radial-gradient(ellipse 50% 40% at 20% 100%, rgba(0, 255, 255, 0.08), transparent);
+}
+
+[data-theme='nordic'] {
+  /* ─── Nordic ──────────────────────────────────────────────
+     Soğuk mavi-gri zemin + Buz mavisi accent — Göz yormayan, sakin
+  ────────────────────────────────────────────────────────── */
+  --bg-primary:   #2E3440;
+  --bg-secondary: #3B4252;
+  --bg-tertiary:  #434C5E;
+  --bg-hover:     #4C566A;
+
+  --text-primary:   #ECEFF4;
+  --text-secondary: #E5E9F0;
+  --text-muted:     #D8DEE9;
+
+  --accent-primary: #88C0D0;
+  --accent-hover:   #8FBCBB;
+  --accent-subtle:  rgba(136, 192, 208, 0.15);
+  --accent-glow:    rgba(136, 192, 208, 0.3);
+  --accent-muted:   rgba(136, 192, 208, 0.05);
+
+  --danger:        #BF616A;
+  --danger-hover:  #D08770;
+  --danger-subtle: rgba(191, 97, 106, 0.15);
+
+  --success:        #A3BE8C;
+  --success-subtle: rgba(163, 190, 140, 0.1);
+  --warning: #EBCB8B;
+
+  --glass-bg:            rgba(59, 66, 82, 0.85);
+  --glass-border:        rgba(136, 192, 208, 0.2);
+  --glass-border-subtle: rgba(216, 222, 233, 0.08);
+  --glass-shadow:        0 8px 32px rgba(0, 0, 0, 0.4);
+
+  --bg-gradient:
+    radial-gradient(ellipse 60% 40% at 60% -10%, rgba(136, 192, 208, 0.08), transparent),
+    radial-gradient(ellipse 40% 40% at 10% 100%, rgba(129, 161, 193, 0.05), transparent);
+}
+
+[data-theme='sakura'] {
+  /* ─── Sakura ──────────────────────────────────────────────
+     Daha belirgin ve tatlı pembe tonları
+  ────────────────────────────────────────────────────────── */
+  --bg-primary:   #FFF0F5;
+  --bg-secondary: #FFF5F8;
+  --bg-tertiary:  #FFE6EE;
+  --bg-hover:     #FFD6E3;
+
+  --text-primary:   #4A3B3D;
+  --text-secondary: #7A6265;
+  --text-muted:     #A58D90;
+
+  --accent-primary: #FF6699;
+  --accent-hover:   #FF3377;
+  --accent-subtle:  rgba(255, 102, 153, 0.15);
+  --accent-glow:    rgba(255, 102, 153, 0.35);
+  --accent-muted:   rgba(255, 102, 153, 0.05);
+
+  --danger:        #E05D6F;
+  --danger-hover:  #C94A5B;
+  --danger-subtle: rgba(224, 93, 111, 0.1);
+
+  --success:        #85B899;
+  --success-subtle: rgba(133, 184, 153, 0.1);
+  --warning: #D9A05B;
+
+  --glass-bg:            rgba(255, 245, 248, 0.85);
+  --glass-border:        rgba(255, 102, 153, 0.25);
+  --glass-border-subtle: rgba(255, 153, 187, 0.4);
+  --glass-shadow:        0 8px 32px rgba(255, 102, 153, 0.15);
+
+  --bg-gradient:
+    radial-gradient(ellipse 60% 40% at 60% -10%, rgba(255, 102, 153, 0.15), transparent),
+    radial-gradient(ellipse 40% 40% at 10% 100%, rgba(255, 102, 153, 0.1), transparent);
+}
+
+[data-theme='hacker'] {
+  /* ─── Hacker ──────────────────────────────────────────────
+     Terminal stili karanlık zemin + Fosforlu yeşil
+  ────────────────────────────────────────────────────────── */
+  --bg-primary:   #000000;
+  --bg-secondary: #0A0A0A;
+  --bg-tertiary:  #111111;
+  --bg-hover:     #1A1A1A;
+
+  --text-primary:   #00FF00;
+  --text-secondary: #00CC00;
+  --text-muted:     #008800;
+
+  --accent-primary: #00FF00;
+  --accent-hover:   #00FF33;
+  --accent-subtle:  rgba(0, 255, 0, 0.15);
+  --accent-glow:    rgba(0, 255, 0, 0.5);
+  --accent-muted:   rgba(0, 255, 0, 0.05);
+
+  --danger:        #FF0000;
+  --danger-hover:  #FF3333;
+  --danger-subtle: rgba(255, 0, 0, 0.15);
+
+  --success:        #00FF00;
+  --success-subtle: rgba(0, 255, 0, 0.1);
+  --warning: #FFFF00;
+
+  --glass-bg:            rgba(10, 10, 10, 0.9);
+  --glass-border:        rgba(0, 255, 0, 0.4);
+  --glass-border-subtle: rgba(0, 255, 0, 0.15);
+  --glass-shadow:        0 8px 32px rgba(0, 255, 0, 0.2);
+
+  --bg-gradient:
+    radial-gradient(ellipse 50% 50% at 50% 50%, rgba(0, 255, 0, 0.05), transparent);
+}
+
+[data-theme='sunset'] {
+  /* ─── Sunset ──────────────────────────────────────────────
+     Gün batımı moru ve turuncu tonları
+  ────────────────────────────────────────────────────────── */
+  --bg-primary:   #1A0B2E;
+  --bg-secondary: #24113D;
+  --bg-tertiary:  #30164D;
+  --bg-hover:     #3F1D64;
+
+  --text-primary:   #FFE5E5;
+  --text-secondary: #FFB3B3;
+  --text-muted:     #CC8080;
+
+  --accent-primary: #FF6B6B;
+  --accent-hover:   #FF8E53;
+  --accent-subtle:  rgba(255, 107, 107, 0.15);
+  --accent-glow:    rgba(255, 142, 83, 0.4);
+  --accent-muted:   rgba(255, 107, 107, 0.05);
+
+  --danger:        #E63946;
+  --danger-hover:  #FF4D5B;
+  --danger-subtle: rgba(230, 57, 70, 0.15);
+
+  --success:        #4ECDC4;
+  --success-subtle: rgba(78, 205, 196, 0.1);
+  --warning: #FFE66D;
+
+  --glass-bg:            rgba(36, 17, 61, 0.85);
+  --glass-border:        rgba(255, 107, 107, 0.3);
+  --glass-border-subtle: rgba(255, 179, 179, 0.1);
+  --glass-shadow:        0 8px 32px rgba(255, 107, 107, 0.2);
+
+  --bg-gradient:
+    radial-gradient(ellipse 60% 40% at 80% 0%, rgba(255, 107, 107, 0.15), transparent),
+    radial-gradient(ellipse 60% 40% at 20% 100%, rgba(255, 142, 83, 0.1), transparent);
+}
+
+[data-theme='deep-ocean'] {
+  /* ─── Deep Ocean ──────────────────────────────────────────
+     Derin lacivert okyanus tonları
+  ────────────────────────────────────────────────────────── */
+  --bg-primary:   #0A1128;
+  --bg-secondary: #0F1A3B;
+  --bg-tertiary:  #142451;
+  --bg-hover:     #1B306B;
+
+  --text-primary:   #E0F2FE;
+  --text-secondary: #BAE6FD;
+  --text-muted:     #7DD3FC;
+
+  --accent-primary: #0EA5E9;
+  --accent-hover:   #38BDF8;
+  --accent-subtle:  rgba(14, 165, 233, 0.15);
+  --accent-glow:    rgba(14, 165, 233, 0.4);
+  --accent-muted:   rgba(14, 165, 233, 0.05);
+
+  --danger:        #F43F5E;
+  --danger-hover:  #FB7185;
+  --danger-subtle: rgba(244, 63, 94, 0.15);
+
+  --success:        #10B981;
+  --success-subtle: rgba(16, 185, 129, 0.1);
+  --warning: #F59E0B;
+
+  --glass-bg:            rgba(15, 26, 59, 0.85);
+  --glass-border:        rgba(14, 165, 233, 0.3);
+  --glass-border-subtle: rgba(186, 230, 253, 0.1);
+  --glass-shadow:        0 8px 32px rgba(14, 165, 233, 0.2);
+
+  --bg-gradient:
+    radial-gradient(ellipse 60% 40% at 60% -10%, rgba(14, 165, 233, 0.15), transparent),
+    radial-gradient(ellipse 40% 40% at 10% 100%, rgba(56, 189, 248, 0.1), transparent);
+}
+
+[data-theme='high-contrast'] {
+  /* ─── High Contrast ───────────────────────────────────────
+     Erişilebilirlik için maksimum zıt renkler
+  ────────────────────────────────────────────────────────── */
+  --bg-primary:   #000000;
+  --bg-secondary: #000000;
+  --bg-tertiary:  #1A1A1A;
+  --bg-hover:     #333333;
+
+  --text-primary:   #FFFFFF;
+  --text-secondary: #FFFF00;
+  --text-muted:     #CCCCCC;
+
+  --accent-primary: #FFFF00;
+  --accent-hover:   #FFCC00;
+  --accent-subtle:  rgba(255, 255, 0, 0.2);
+  --accent-glow:    rgba(255, 255, 0, 0.6);
+  --accent-muted:   rgba(255, 255, 0, 0.1);
+
+  --danger:        #FF0000;
+  --danger-hover:  #FF3333;
+  --danger-subtle: rgba(255, 0, 0, 0.2);
+
+  --success:        #00FF00;
+  --success-subtle: rgba(0, 255, 0, 0.2);
+  --warning: #FF9900;
+
+  --glass-bg:            rgba(0, 0, 0, 0.95);
+  --glass-border:        #FFFF00;
+  --glass-border-subtle: #666666;
+  --glass-shadow:        0 4px 16px rgba(255, 255, 0, 0.3);
+
+  --bg-gradient: none;
+}
+
+[data-theme='amber-wood'] {
+  /* ─── Amber Wood ──────────────────────────────────────────
+     Sıcak ahşap tonları, gün batımı turuncusu ve soft his
+  ────────────────────────────────────────────────────────── */
+  --bg-primary:   #F9F3ED;
+  --bg-secondary: #FFFFFF;
+  --bg-tertiary:  #EFE4D8;
+  --bg-hover:     #E6D5C3;
+
+  --text-primary:   #4A3728;
+  --text-secondary: #7A5C43;
+  --text-muted:     #A68A73;
+
+  --accent-primary: #E67E22;
+  --accent-hover:   #D35400;
+  --accent-subtle:  rgba(230, 126, 34, 0.12);
+  --accent-glow:    rgba(230, 126, 34, 0.25);
+  --accent-muted:   rgba(230, 126, 34, 0.05);
+
+  --danger:        #E74C3C;
+  --danger-hover:  #C0392B;
+  --danger-subtle: rgba(231, 76, 60, 0.1);
+
+  --success:        #27AE60;
+  --success-subtle: rgba(39, 174, 96, 0.1);
+  --warning: #F39C12;
+
+  --glass-bg:            rgba(255, 255, 255, 0.85);
+  --glass-border:        rgba(230, 126, 34, 0.25);
+  --glass-border-subtle: rgba(122, 92, 67, 0.1);
+  --glass-shadow:        0 8px 32px rgba(230, 126, 34, 0.1);
+
+  --bg-gradient:
+    radial-gradient(ellipse 60% 40% at 60% -10%, rgba(230, 126, 34, 0.1), transparent),
+    radial-gradient(ellipse 40% 40% at 10% 100%, rgba(211, 84, 0, 0.05), transparent);
+}
+
 
 
 /* ── Design Tokens (shared across all themes) ─────────── */

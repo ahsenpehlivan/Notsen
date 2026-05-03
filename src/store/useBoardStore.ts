@@ -3,9 +3,9 @@ import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/useAuthStore';
 
 export type Id = string;
-export type ThemeName = 'charcoal' | 'midnight' | 'cream-slate' | 'stone-indigo' | 'warm-linen';
+export type ThemeName = 'charcoal' | 'midnight' | 'cream-slate' | 'stone-indigo' | 'warm-linen' | 'cyberpunk' | 'nordic' | 'sakura' | 'hacker' | 'sunset' | 'deep-ocean' | 'high-contrast' | 'amber-wood';
 
-const VALID_THEMES: ThemeName[] = ['charcoal', 'midnight', 'cream-slate', 'stone-indigo', 'warm-linen'];
+const VALID_THEMES: ThemeName[] = ['charcoal', 'midnight', 'cream-slate', 'stone-indigo', 'warm-linen', 'cyberpunk', 'nordic', 'sakura', 'hacker', 'sunset', 'deep-ocean', 'high-contrast', 'amber-wood'];
 
 export interface ChecklistItem {
   id: string;
@@ -45,6 +45,7 @@ export interface Board {
   title: string;
   user_id?: string;
   labels?: BoardLabel[];
+  position?: number;
 }
 
 export interface BoardMember {
@@ -95,6 +96,7 @@ interface BoardState {
   addBoard: (userId: string, title: string) => Promise<void>;
   deleteBoard: (id: Id) => Promise<void>;
   updateBoardTitle: (id: Id, title: string) => Promise<void>;
+  reorderBoards: (newOrder: Board[]) => Promise<void>;
   setActiveBoard: (id: Id) => void;
   inviteToBoard: (boardId: Id, email: string, role: 'viewer' | 'editor') => Promise<{ success: boolean; error?: string }>;
   fetchMembers: (boardId: Id) => Promise<void>;
@@ -227,6 +229,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       .from('boards')
       .select('*')
       .eq('user_id', userId)
+      .order('position', { ascending: true })
       .order('created_at', { ascending: true });
 
     let allBoards = [...(ownedBoards || [])];
@@ -261,7 +264,11 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       title: b.title,
       user_id: b.user_id,
       labels: parseLabels(b.labels),
+      position: b.position || 0,
     }));
+    
+    // Position bazlı sıralama, eğer position yoksa (veya 0 ise) eklendiği sıraya göre (zaten yukarda sıralandı)
+    mappedBoards.sort((a, b) => (a.position || 0) - (b.position || 0));
 
     const firstBoardId = mappedBoards[0]?.id || null;
 
@@ -328,9 +335,12 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   },
 
   addBoard: async (userId, title) => {
+    const { boards } = get();
+    const position = boards.length;
+
     const { data, error } = await supabase
       .from('boards')
-      .insert({ user_id: userId, title })
+      .insert({ user_id: userId, title, position })
       .select()
       .single();
 
@@ -340,7 +350,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       return;
     }
 
-    const newBoard: Board = { id: data.id, title: data.title, user_id: data.user_id, labels: parseLabels(data.labels) };
+    const newBoard: Board = { id: data.id, title: data.title, user_id: data.user_id, labels: parseLabels(data.labels), position: data.position };
 
     // Yeni panoya varsayılan sütunlar ekle
     const defaultCols = [
@@ -382,6 +392,15 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       boards: state.boards.map(b => b.id === id ? { ...b, title: title.trim() } : b),
     }));
     if (oldBoard) get()._logActivity(id, 'board_renamed', 'board', id, title.trim(), { old_title: oldBoard.title, new_title: title.trim() });
+  },
+
+  reorderBoards: async (newOrder) => {
+    set({ boards: newOrder });
+    await Promise.all(
+      newOrder.map((board, index) =>
+        supabase.from('boards').update({ position: index }).eq('id', board.id)
+      )
+    );
   },
 
   inviteToBoard: async (boardId, email, role) => {
@@ -762,11 +781,12 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         (payload) => {
           const d = payload.new as any;
           if (!boardIds.includes(d.id)) return;
-          set(state => ({
-            boards: state.boards.map(b =>
-              b.id === d.id ? { ...b, title: d.title, labels: parseLabels(d.labels) } : b
-            ),
-          }));
+          set(state => {
+            const updatedBoards = state.boards.map(b =>
+              b.id === d.id ? { ...b, title: d.title, labels: parseLabels(d.labels), position: d.position } : b
+            );
+            return { boards: updatedBoards.sort((a, b) => (a.position || 0) - (b.position || 0)) };
+          });
         }
       )
 

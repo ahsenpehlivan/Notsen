@@ -98,8 +98,9 @@ CREATE POLICY "Gorev Guncelleyebilir" ON public.tasks
 CREATE POLICY "Gorev Silebilir" ON public.tasks
   FOR DELETE USING (public.is_board_owner(board_id) OR public.is_board_editor(board_id));
 
--- 7. boards tablosuna etiket (labels) sütunu ekle
+-- 7. boards tablosuna etiket (labels) ve sıralama (position) sütunları ekle
 ALTER TABLE public.boards ADD COLUMN IF NOT EXISTS labels jsonb DEFAULT '["Bug", "Feature", "Tasarım", "Acil", "Ar-Ge"]'::jsonb;
+ALTER TABLE public.boards ADD COLUMN IF NOT EXISTS position INTEGER DEFAULT 0;
 
 -- 8. Supabase Realtime aktifleştir (Gerçek Zamanlı Senkronizasyon)
 -- Tablo değişikliklerinin anlık yayınlanması için:

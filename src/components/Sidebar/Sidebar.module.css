@@ -244,6 +244,32 @@
 
 .boardItem:hover .boardLink { color: var(--text-primary); }
 
+.boardDragHandle {
+  cursor: grab;
+  color: var(--text-muted);
+  padding: 0.65rem 0 0.65rem 0.5rem;
+  display: flex;
+  align-items: center;
+  opacity: 0.3;
+  transition: opacity var(--transition-fast);
+}
+
+.boardDragHandle:active {
+  cursor: grabbing;
+}
+
+.boardItem:hover .boardDragHandle {
+  opacity: 1;
+}
+
+.dragging {
+  background: var(--bg-tertiary);
+  box-shadow: var(--glass-shadow);
+  z-index: 100;
+  border-left-color: var(--accent-primary);
+  opacity: 0.9;
+}
+
 .deleteBtn {
   padding: 0.45rem;
   color: var(--text-muted);
@@ -266,9 +292,9 @@
 
 .themePicker {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.5rem 0.875rem;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 0.875rem;
   background: var(--bg-tertiary);
   border: 1px solid var(--glass-border-subtle);
   border-radius: var(--radius-md);
@@ -285,6 +311,7 @@
 .themeSwatches {
   display: flex;
   gap: 0.375rem;
+  flex-wrap: wrap;
 }
 
 .themeSwatch {
