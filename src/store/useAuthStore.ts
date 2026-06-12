@@ -13,6 +13,7 @@ interface AuthState {
   linkGoogle: () => Promise<void>;
   linkGitHub: () => Promise<void>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<{ success: boolean; message?: string; error?: string }>;
   setUser: (user: User | null) => void;
   clearError: () => void;
 }
@@ -50,33 +51,50 @@ export const useAuthStore = create<AuthState>((set) => ({
   signInWithGoogle: async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin }
+      options: { redirectTo: `${window.location.origin}/auth/callback` }
     });
   },
 
   signInWithGitHub: async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'github',
-      options: { redirectTo: window.location.origin }
+      options: { redirectTo: `${window.location.origin}/auth/callback` }
     });
   },
 
   linkGoogle: async () => {
     await supabase.auth.linkIdentity({
       provider: 'google',
-      options: { redirectTo: window.location.origin }
+      options: { redirectTo: `${window.location.origin}/auth/callback` }
     });
   },
 
   linkGitHub: async () => {
     await supabase.auth.linkIdentity({
       provider: 'github',
-      options: { redirectTo: window.location.origin }
+      options: { redirectTo: `${window.location.origin}/auth/callback` }
     });
   },
 
   logout: async () => {
     await supabase.auth.signOut();
     set({ user: null });
+  },
+
+  deleteAccount: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const res = await fetch('/api/account/delete', { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) {
+        set({ error: data.error || 'Hesap silinemedi.', isLoading: false });
+        return { success: false, error: data.error };
+      }
+      set({ user: null, isLoading: false });
+      return { success: true, message: data.message };
+    } catch {
+      set({ error: 'Bağlantı hatası.', isLoading: false });
+      return { success: false, error: 'Bağlantı hatası.' };
+    }
   },
 }));

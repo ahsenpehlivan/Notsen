@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { useAuthStore } from '@/store/useAuthStore';
 import { LogIn, UserPlus } from 'lucide-react';
 import styles from './Login.module.css';
+import { useRouter } from 'next/navigation';
 
 // Simple SVG icons for OAuth providers
 const GoogleIcon = () => (
@@ -27,17 +29,30 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [signUpDone, setSignUpDone] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const { signIn, signUp, signInWithGoogle, signInWithGitHub, isLoading, error, clearError } = useAuthStore();
+
+  useEffect(() => {
+    if (searchParams.get('error') === 'auth') {
+      useAuthStore.setState({ error: 'Giriş işlemi tamamlanamadı. Lütfen tekrar deneyin.' });
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
     if (mode === 'signup') {
       await signUp(email, password);
-      setSignUpDone(true);
+      if (!useAuthStore.getState().error) {
+        setSignUpDone(true);
+      }
     } else {
       await signIn(email, password);
+      if (!useAuthStore.getState().error) {
+        router.push('/boards');
+      }
     }
   };
 

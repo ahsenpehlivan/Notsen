@@ -1,9 +1,13 @@
-import React, { useEffect, useCallback } from 'react';
-import { ActivityLog, useBoardStore } from '@/store/useBoardStore';
+import React from 'react';
+import { ActivityLog } from '@/store/useBoardStore';
+import { useActivityLogs } from '@/hooks/api/useActivityLogs';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/query-keys';
 import { X, GitBranch, Plus, Pencil, Trash2, ArrowRight, Users, Tag } from 'lucide-react';
 import styles from './ActivityPanel.module.css';
 
 interface ActivityPanelProps {
+  boardId: string;
   onClose: () => void;
 }
 
@@ -21,30 +25,30 @@ function relativeTime(isoDate: string): string {
 }
 
 function getActionIcon(action: string) {
-  if (action === 'task_created')   return <Plus  size={14} />;
-  if (action === 'task_deleted')   return <Trash2 size={14} />;
-  if (action === 'task_moved')     return <ArrowRight size={14} />;
-  if (action === 'task_updated')   return <Pencil size={14} />;
+  if (action === 'task_created') return <Plus size={14} />;
+  if (action === 'task_deleted') return <Trash2 size={14} />;
+  if (action === 'task_moved') return <ArrowRight size={14} />;
+  if (action === 'task_updated') return <Pencil size={14} />;
   if (action === 'column_created') return <Plus size={14} />;
   if (action === 'column_deleted') return <Trash2 size={14} />;
   if (action === 'column_renamed') return <Pencil size={14} />;
-  if (action === 'board_renamed')  return <Pencil size={14} />;
+  if (action === 'board_renamed') return <Pencil size={14} />;
   if (action === 'member_invited') return <Users size={14} />;
-  if (action === 'label_created')  return <Tag size={14} />;
+  if (action === 'label_created') return <Tag size={14} />;
   return <GitBranch size={14} />;
 }
 
 function getActionColor(action: string): string {
   if (action.endsWith('_deleted')) return 'danger';
   if (action.endsWith('_created')) return 'success';
-  if (action === 'task_moved')     return 'accent';
+  if (action === 'task_moved') return 'accent';
   if (action === 'member_invited') return 'info';
   return 'muted';
 }
 
 function formatMessage(log: ActivityLog): React.ReactNode {
   const name = log.userEmail.split('@')[0];
-  const title = log.entityTitle ? <strong>"{log.entityTitle}"</strong> : null;
+  const title = log.entityTitle ? <strong>&quot;{log.entityTitle}&quot;</strong> : null;
   const meta = log.metadata || {};
 
   switch (log.action) {
@@ -65,20 +69,19 @@ function formatMessage(log: ActivityLog): React.ReactNode {
     case 'board_renamed':
       return <>{name} panoyu <strong>{meta.new_title}</strong> olarak yeniden adlandırdı</>;
     case 'member_invited':
-      return <>{name} <strong>{log.entityTitle}</strong>'i {meta.role === 'editor' ? 'editör' : 'görüntüleyici'} olarak davet etti</>;
+      return <>{name} <strong>{log.entityTitle}</strong>&apos;i {meta.role === 'editor' ? 'editör' : 'görüntüleyici'} olarak davet etti</>;
     default:
       return <>{name} bir işlem yaptı</>;
   }
 }
 
-export default function ActivityPanel({ onClose }: ActivityPanelProps) {
-  const { activityLogs, fetchActivityLogs, activeBoardId } = useBoardStore();
+export default function ActivityPanel({ boardId, onClose }: ActivityPanelProps) {
+  const queryClient = useQueryClient();
+  const { data: activityLogs = [], isLoading } = useActivityLogs(boardId);
 
-  const load = useCallback(() => {
-    if (activeBoardId) fetchActivityLogs(activeBoardId);
-  }, [activeBoardId, fetchActivityLogs]);
-
-  useEffect(() => { load(); }, [load]);
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.activityLogs(boardId) });
+  };
 
   return (
     <div className={styles.panel}>
@@ -93,7 +96,11 @@ export default function ActivityPanel({ onClose }: ActivityPanelProps) {
       </div>
 
       <div className={styles.body}>
-        {activityLogs.length === 0 ? (
+        {isLoading ? (
+          <div className={styles.empty}>
+            <p>Yükleniyor...</p>
+          </div>
+        ) : activityLogs.length === 0 ? (
           <div className={styles.empty}>
             <GitBranch size={32} className={styles.emptyIcon} />
             <p>Henüz aktivite yok</p>
@@ -123,7 +130,7 @@ export default function ActivityPanel({ onClose }: ActivityPanelProps) {
       </div>
 
       <div className={styles.footer}>
-        <button className={styles.refreshBtn} onClick={load}>Yenile</button>
+        <button className={styles.refreshBtn} onClick={refresh}>Yenile</button>
         <span className={styles.footerNote}>Son 100 aktivite gösteriliyor</span>
       </div>
     </div>

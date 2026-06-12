@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Column, useBoardStore } from '@/store/useBoardStore';
+import { Column } from '@/store/useBoardStore';
+import { useColumnMutations } from '@/hooks/api/useBoardMutations';
 import { X, ArrowUp, ArrowDown, GripVertical } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
@@ -55,16 +56,17 @@ function SortableColumnRow({ col, index, total, moveUp, moveDown }: SortableColu
 
 interface ColumnReorderModalProps {
   boardId: string;
+  columns: Column[];
   onClose: () => void;
 }
 
-export default function ColumnReorderModal({ boardId, onClose }: ColumnReorderModalProps) {
-  const { columns, reorderColumns } = useBoardStore();
+export default function ColumnReorderModal({ boardId, columns, onClose }: ColumnReorderModalProps) {
+  const { reorderColumns } = useColumnMutations();
   const [localColumns, setLocalColumns] = useState<Column[]>([]);
 
   useEffect(() => {
-    setLocalColumns(columns.filter(c => c.boardId === boardId));
-  }, [columns, boardId]);
+    setLocalColumns(columns);
+  }, [columns]);
 
   const moveUp = (index: number) => {
     if (index === 0) return;
@@ -85,7 +87,7 @@ export default function ColumnReorderModal({ boardId, onClose }: ColumnReorderMo
   };
 
   const handleSave = () => {
-    reorderColumns(boardId, localColumns);
+    reorderColumns.mutate({ boardId, newOrder: localColumns });
     onClose();
   };
 

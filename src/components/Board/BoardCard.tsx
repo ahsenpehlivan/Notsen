@@ -1,20 +1,19 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Task, useBoardStore } from '@/store/useBoardStore';
-import { GripVertical, AlignLeft } from 'lucide-react';
+import { Task, BoardLabel } from '@/store/useBoardStore';
+import { GripVertical, AlignLeft, MessageSquare } from 'lucide-react';
 import styles from './Board.module.css';
 
 interface BoardCardProps {
   task: Task;
+  boardLabels: BoardLabel[];
   isOverlay?: boolean;
+  isViewer?: boolean;
   onEdit?: () => void;
 }
 
-export default function BoardCard({ task, isOverlay, onEdit }: BoardCardProps) {
-  const { currentUserRole, boards, activeBoardId } = useBoardStore();
-  const currentBoard = boards.find(b => b.id === activeBoardId);
-  const isViewer = currentUserRole === 'viewer';
+export default function BoardCard({ task, boardLabels, isOverlay, isViewer = false, onEdit }: BoardCardProps) {
   const {
     setNodeRef,
     attributes,
@@ -25,21 +24,25 @@ export default function BoardCard({ task, isOverlay, onEdit }: BoardCardProps) {
   } = useSortable({
     id: task.id,
     data: { type: 'Task', task },
+    disabled: isViewer,
   });
 
-  const style = { transition, transform: CSS.Transform.toString(transform) };
+  const style = {
+    transition,
+    transform: CSS.Transform.toString(transform),
+  };
 
-  // Checklist progress
   const checklist = task.checklist || [];
   const totalItems = checklist.length;
-  const doneItems = checklist.filter(i => i.done).length;
+  const doneItems = checklist.filter((i) => i.done).length;
   const progressPct = totalItems === 0 ? 0 : Math.round((doneItems / totalItems) * 100);
   const allDone = totalItems > 0 && doneItems === totalItems;
+  const visibleTags = (task.tags || []).slice(0, 3);
+  const extraTags = (task.tags || []).length - visibleTags.length;
+  const commentCount = task.comments?.length ?? 0;
 
   if (isDragging && !isOverlay) {
-    return (
-      <div ref={setNodeRef} style={style} className={`${styles.card} ${styles.cardDraggingPlaceholder}`} />
-    );
+    return <div ref={setNodeRef} style={style} className={`${styles.card} ${styles.cardDraggingPlaceholder}`} />;
   }
 
   return (
@@ -47,7 +50,7 @@ export default function BoardCard({ task, isOverlay, onEdit }: BoardCardProps) {
       ref={setNodeRef}
       style={style}
       className={`${styles.card} ${isOverlay ? styles.cardOverlay : ''}`}
-      onClick={e => {
+      onClick={(e) => {
         if (!(e.target as HTMLElement).closest(`.${styles.dragHandle}`)) onEdit?.();
       }}
     >
@@ -57,10 +60,10 @@ export default function BoardCard({ task, isOverlay, onEdit }: BoardCardProps) {
         </div>
       )}
       <div className={styles.cardContent}>
-        {task.tags && task.tags.length > 0 && (
+        {visibleTags.length > 0 && (
           <div className={styles.boardTags}>
-            {task.tags.map(tag => {
-              const label = currentBoard?.labels?.find(l => l.name === tag);
+            {visibleTags.map((tag) => {
+              const label = boardLabels.find((l) => l.name === tag);
               return (
                 <span
                   key={tag}
@@ -71,11 +74,11 @@ export default function BoardCard({ task, isOverlay, onEdit }: BoardCardProps) {
                 </span>
               );
             })}
+            {extraTags > 0 && <span className={styles.boardTagMore}>+{extraTags}</span>}
           </div>
         )}
         <h4>{task.title}</h4>
 
-        {/* Mini Checklist Progress */}
         {totalItems > 0 && (
           <div className={styles.cardChecklistRow}>
             <div className={styles.cardChecklistBar}>
@@ -98,6 +101,12 @@ export default function BoardCard({ task, isOverlay, onEdit }: BoardCardProps) {
             {task.description && (
               <div className={styles.badge} title="Açıklama var">
                 <AlignLeft size={14} />
+              </div>
+            )}
+            {commentCount > 0 && (
+              <div className={styles.badge} title={`${commentCount} yorum`}>
+                <MessageSquare size={14} />
+                <span>{commentCount}</span>
               </div>
             )}
             {task.dueDate && (

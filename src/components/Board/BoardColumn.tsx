@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
-import { Column, Task, useBoardStore } from '@/store/useBoardStore';
+import { Column, Task, BoardLabel } from '@/store/useBoardStore';
+import { useColumnMutations, useTaskMutations } from '@/hooks/api/useBoardMutations';
 import BoardCard from './BoardCard';
 import { Plus, Trash2 } from 'lucide-react';
 import styles from './Board.module.css';
@@ -9,17 +10,20 @@ import styles from './Board.module.css';
 interface BoardColumnProps {
   column: Column;
   tasks: Task[];
+  boardLabels: BoardLabel[];
+  currentUserRole: 'viewer' | 'editor' | 'owner' | null;
   onEditTask: (task: Task) => void;
   isFiltered?: boolean;
 }
 
-export default function BoardColumn({ column, tasks, onEditTask, isFiltered }: BoardColumnProps) {
+export default function BoardColumn({ column, tasks, boardLabels, currentUserRole, onEditTask, isFiltered }: BoardColumnProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
 
-  const { addTask, deleteColumn, updateColumn, currentUserRole } = useBoardStore();
+  const { addTask } = useTaskMutations();
+  const { deleteColumn, updateColumn } = useColumnMutations();
   const isViewer = currentUserRole === 'viewer';
 
   const taskIds = useMemo(() => tasks.map((t) => t.id), [tasks]);
@@ -32,7 +36,7 @@ export default function BoardColumn({ column, tasks, onEditTask, isFiltered }: B
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (newTaskTitle.trim()) {
-      addTask(column.boardId, column.id, newTaskTitle.trim());
+      addTask.mutate({ boardId: column.boardId, columnId: column.id, title: newTaskTitle.trim() });
       setNewTaskTitle('');
       setIsAdding(false);
     }
@@ -40,16 +44,13 @@ export default function BoardColumn({ column, tasks, onEditTask, isFiltered }: B
 
   const handleTitleSave = () => {
     if (titleDraft.trim() && titleDraft.trim() !== column.title) {
-      updateColumn(column.id, titleDraft.trim());
+      updateColumn.mutate({ id: column.id, boardId: column.boardId, title: titleDraft.trim() });
     }
     setIsEditingTitle(false);
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      className={`${styles.column} ${isOver ? styles.columnOver : ''}`}
-    >
+    <div ref={setNodeRef} className={`${styles.column} ${isOver ? styles.columnOver : ''}`}>
       <div className={styles.columnHeader}>
         <div className={styles.columnTitle}>
           {isEditingTitle && !isViewer ? (
@@ -57,9 +58,9 @@ export default function BoardColumn({ column, tasks, onEditTask, isFiltered }: B
               autoFocus
               className={styles.columnTitleInput}
               value={titleDraft}
-              onChange={e => setTitleDraft(e.target.value)}
+              onChange={(e) => setTitleDraft(e.target.value)}
               onBlur={handleTitleSave}
-              onKeyDown={e => {
+              onKeyDown={(e) => {
                 if (e.key === 'Enter') handleTitleSave();
                 if (e.key === 'Escape') setIsEditingTitle(false);
               }}
@@ -75,10 +76,7 @@ export default function BoardColumn({ column, tasks, onEditTask, isFiltered }: B
               {column.title}
             </h3>
           )}
-          <span
-            className={styles.taskCount}
-            style={isFiltered ? { background: 'rgba(230,57,70,0.15)', color: 'var(--accent-primary)' } : {}}
-          >
+          <span className={styles.taskCount} style={isFiltered ? { background: 'rgba(230,57,70,0.15)', color: 'var(--accent-primary)' } : {}}>
             {tasks.length}
           </span>
         </div>
@@ -87,7 +85,7 @@ export default function BoardColumn({ column, tasks, onEditTask, isFiltered }: B
             className={styles.columnActionBtn}
             onClick={() => {
               if (window.confirm('Bu sütunu silmek istediğinize emin misiniz?')) {
-                deleteColumn(column.id);
+                deleteColumn.mutate({ id: column.id, boardId: column.boardId });
               }
             }}
             title="Sütunu Sil"
@@ -100,7 +98,7 @@ export default function BoardColumn({ column, tasks, onEditTask, isFiltered }: B
       <div className={styles.columnBody}>
         <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
           {tasks.map((task) => (
-            <BoardCard key={task.id} task={task} onEdit={() => onEditTask(task)} />
+            <BoardCard key={task.id} task={task} boardLabels={boardLabels} isViewer={isViewer} onEdit={() => onEditTask(task)} />
           ))}
         </SortableContext>
       </div>
@@ -121,19 +119,13 @@ export default function BoardColumn({ column, tasks, onEditTask, isFiltered }: B
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    handleAddTask(e as any);
+                    handleAddTask(e as unknown as React.FormEvent);
                   }
                 }}
               />
               <div className={styles.formActions}>
                 <button type="submit" className={styles.saveBtn}>Ekle</button>
-                <button
-                  type="button"
-                  className={styles.cancelBtn}
-                  onClick={() => setIsAdding(false)}
-                >
-                  İptal
-                </button>
+                <button type="button" className={styles.cancelBtn} onClick={() => setIsAdding(false)}>İptal</button>
               </div>
             </form>
           )}

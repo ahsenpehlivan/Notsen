@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
-import { useBoardStore, PASTEL_COLORS, BoardLabel } from '@/store/useBoardStore';
+import { PASTEL_COLORS, BoardLabel, Board } from '@/store/useBoardStore';
+import { useBoardMutations } from '@/hooks/api/useBoardMutations';
 import { X, Trash2, Edit2, Plus } from 'lucide-react';
 import styles from './Board.module.css';
 
 interface LabelsManagerModalProps {
   boardId: string;
+  board: Board;
   onClose: () => void;
 }
 
-export default function LabelsManagerModal({ boardId, onClose }: LabelsManagerModalProps) {
-  const { boards, updateBoardLabels } = useBoardStore();
-  const board = boards.find(b => b.id === boardId);
-  const labels = board?.labels || [];
+export default function LabelsManagerModal({ boardId, board, onClose }: LabelsManagerModalProps) {
+  const { updateBoardLabels } = useBoardMutations();
+  const labels = board.labels || [];
 
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -21,15 +22,12 @@ export default function LabelsManagerModal({ boardId, onClose }: LabelsManagerMo
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState(PASTEL_COLORS[0]);
 
-  if (!board) return null;
-
   const handleSaveEdit = (label: BoardLabel) => {
     if (!editName.trim()) return;
-    const newLabels = labels.map(l => l.id === label.id ? { ...l, name: editName.trim(), color: editColor } : l);
-    // If name changed, pass old and new name for task migration
+    const newLabels = labels.map((l) => (l.id === label.id ? { ...l, name: editName.trim(), color: editColor } : l));
     const oldName = label.name !== editName.trim() ? label.name : undefined;
     const updatedName = label.name !== editName.trim() ? editName.trim() : undefined;
-    updateBoardLabels(boardId, newLabels, oldName, updatedName);
+    updateBoardLabels.mutate({ boardId, newLabels, oldLabelName: oldName, newLabelName: updatedName });
     setEditingLabelId(null);
   };
 
@@ -38,17 +36,17 @@ export default function LabelsManagerModal({ boardId, onClose }: LabelsManagerMo
     const newLabel: BoardLabel = {
       id: Math.random().toString(36).substring(2, 9),
       name: newName.trim(),
-      color: newColor
+      color: newColor,
     };
-    updateBoardLabels(boardId, [...labels, newLabel]);
+    updateBoardLabels.mutate({ boardId, newLabels: [...labels, newLabel] });
     setNewName('');
     setIsAdding(false);
   };
 
   const handleDelete = (label: BoardLabel) => {
     if (window.confirm(`"${label.name}" etiketini silmek istediğinize emin misiniz? Bu işlem mevcut görevlerden de bu etiketi kaldırır.`)) {
-      const newLabels = labels.filter(l => l.id !== label.id);
-      updateBoardLabels(boardId, newLabels, label.name);
+      const newLabels = labels.filter((l) => l.id !== label.id);
+      updateBoardLabels.mutate({ boardId, newLabels, oldLabelName: label.name });
     }
   };
 

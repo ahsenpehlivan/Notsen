@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
-import { Task, ChecklistItem, useBoardStore } from '@/store/useBoardStore';
+import { Task, ChecklistItem, BoardLabel, TaskComment } from '@/store/useBoardStore';
 import { useAuthStore } from '@/store/useAuthStore';
-import { X, Trash2, Plus, CheckSquare } from 'lucide-react';
+import { useMembers } from '@/hooks/api/useMembers';
+import { useTaskMutations } from '@/hooks/api/useBoardMutations';
+import { X, Trash2, Plus, CheckSquare, MessageSquare } from 'lucide-react';
 import styles from './Board.module.css';
 
 interface CardModalProps {
   task: Task;
+  boardId: string;
+  boardLabels: BoardLabel[];
+  currentUserRole: 'viewer' | 'editor' | 'owner' | null;
   onClose: () => void;
 }
 
@@ -13,9 +18,10 @@ function generateId() {
   return Math.random().toString(36).slice(2, 10);
 }
 
-export default function CardModal({ task, onClose }: CardModalProps) {
-  const { updateTask, deleteTask, members, currentUserRole, boards, activeBoardId } = useBoardStore();
+export default function CardModal({ task, boardId, boardLabels, currentUserRole, onClose }: CardModalProps) {
   const { user } = useAuthStore();
+  const { members } = useMembers(boardId);
+  const { updateTask, deleteTask } = useTaskMutations();
 
   const isViewer = currentUserRole === 'viewer';
 
@@ -25,10 +31,11 @@ export default function CardModal({ task, onClose }: CardModalProps) {
   const [tags, setTags] = useState<string[]>(task.tags || []);
   const [assignee, setAssignee] = useState(task.assignee || '');
   const [checklist, setChecklist] = useState<ChecklistItem[]>(task.checklist || []);
+  const [comments, setComments] = useState<TaskComment[]>(task.comments || []);
   const [newItemText, setNewItemText] = useState('');
+  const [newCommentText, setNewCommentText] = useState('');
 
-  const currentBoard = boards.find(b => b.id === activeBoardId);
-  const AVAILABLE_TAGS = currentBoard?.labels || [];
+  const AVAILABLE_TAGS = boardLabels;
 
   const allUserEmails = new Set(members.map(m => m.user_email));
   if (user?.email) allUserEmails.add(user.email);
@@ -65,20 +72,54 @@ export default function CardModal({ task, onClose }: CardModalProps) {
     setTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
   };
 
+  const addComment = () => {
+    if (!newCommentText.trim() || isViewer || !user?.email) return;
+    const newComment: TaskComment = {
+      id: generateId(),
+      userEmail: user.email,
+      text: newCommentText.trim(),
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [...comments, newComment];
+    setComments(updated);
+    setNewCommentText('');
+    updateTask.mutate({
+      id: task.id,
+      boardId,
+      title: title.trim(),
+      description: description.trim(),
+      dueDate,
+      tags,
+      assignee,
+      checklist,
+      comments: updated,
+    });
+  };
+
   const today = new Date().toISOString().split('T')[0];
 
   const handleSave = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (isViewer) return;
     if (title.trim()) {
-      updateTask(task.id, title.trim(), description.trim(), dueDate, tags, assignee, checklist);
+      updateTask.mutate({
+        id: task.id,
+        boardId,
+        title: title.trim(),
+        description: description.trim(),
+        dueDate,
+        tags,
+        assignee,
+        checklist,
+        comments,
+      });
       onClose();
     }
   };
 
   const handleDelete = () => {
     if (window.confirm('Bu kartı silmek istediğinize emin misiniz?')) {
-      deleteTask(task.id);
+      deleteTask.mutate({ id: task.id, boardId });
       onClose();
     }
   };
@@ -244,6 +285,58 @@ export default function CardModal({ task, onClose }: CardModalProps) {
                 rows={4}
                 disabled={isViewer}
               />
+            </div>
+
+            {/* Yorumlar */}
+            <div className={styles.inputGroup}>
+              <div className={styles.checklistHeader}>
+                <label>
+                  <MessageSquare size={14} style={{ marginRight: '0.3rem', verticalAlign: 'middle' }} />
+                  Yorumlar {comments.length > 0 && `(${comments.length})`}
+                </label>
+              </div>
+              <div className={styles.commentsList}>
+                {comments.length === 0 && (
+                  <p className={styles.commentsEmpty}>Henüz yorum yok.</p>
+                )}
+                {comments.map((c) => (
+                  <div key={c.id} className={styles.commentItem}>
+                    <div className={styles.commentMeta}>
+                      <span className={styles.commentAuthor}>{c.userEmail.split('@')[0]}</span>
+                      <time className={styles.commentTime}>
+                        {new Date(c.createdAt).toLocaleString('tr-TR', {
+                          day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+                        })}
+                      </time>
+                    </div>
+                    <p className={styles.commentText}>{c.text}</p>
+                  </div>
+                ))}
+              </div>
+              {!isViewer && (
+                <div className={styles.checklistAddRow}>
+                  <input
+                    className={styles.checklistAddInput}
+                    value={newCommentText}
+                    onChange={(e) => setNewCommentText(e.target.value)}
+                    placeholder="Yorum yaz..."
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        addComment();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className={styles.checklistAddBtn}
+                    onClick={addComment}
+                    disabled={!newCommentText.trim()}
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
+              )}
             </div>
 
           </div>

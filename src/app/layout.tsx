@@ -34,7 +34,20 @@ export const metadata: Metadata = {
       "Reklamsız, ücretsiz Kanban board ve görev takip uygulaması. Projelerini ve notlarını kolayca yönet.",
     type: "website",
   },
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    title: "Notsen",
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  },
 };
+
+import QueryProvider from "@/providers/QueryProvider";
+import ToastContainer from "@/components/Toast/ToastContainer";
 
 export default function RootLayout({
   children,
@@ -42,8 +55,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body>{children}</body>
+    <html lang="tr" className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body>
+        <QueryProvider>
+          {children}
+          <ToastContainer />
+        </QueryProvider>
+      </body>
     </html>
   );
 }
