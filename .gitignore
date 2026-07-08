@@ -36,7 +36,7 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
-# NOTE: However, we DO want to commit the example file so employers 
+# NOTE: However, we DO want to commit the example file so employers
 # or other developers can run the project locally.
 !.env.example
 
@@ -62,3 +62,10 @@ ehthumbs.db
 !.vscode/extensions.json
 *.swp
 *.swo
+
+# Android files
+android/.gradle/
+android/local.properties
+android/**/build/
+android/app/release/
+*.apk

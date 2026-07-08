@@ -25,6 +25,8 @@ export interface Note {
   tags: string[];
   created_at: string;
   updated_at: string;
+  archived?: boolean;
+  converted_task_id?: string | null;
 }
 
 export interface ActivityLog {

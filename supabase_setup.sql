@@ -107,6 +107,8 @@ ALTER TABLE public.boards ADD COLUMN IF NOT EXISTS position INTEGER DEFAULT 0;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.tasks;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.columns;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.boards;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.board_members;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.activity_logs;
 
 -- 9. tasks tablosuna checklist (alt görevler) sütunu ekle
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS checklist jsonb DEFAULT '[]'::jsonb;

@@ -309,12 +309,139 @@
   color: var(--text-secondary);
 }
 
+.inputForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 0.5rem;
+  transition: border-color var(--transition-fast);
+}
+
+.inputForm:focus-within {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--accent-subtle);
+}
+
+.inputField {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  resize: none;
+  outline: none;
+  padding: 0.5rem;
+  min-height: 44px;
+}
+
+.inputActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 0.25rem;
+}
+
+.quickTags {
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  align-items: center;
+}
+
+.quickTags::-webkit-scrollbar {
+  display: none;
+}
+
+.quickTagBtn {
+  background: var(--bg-tertiary);
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 4px 10px;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.quickTagBtn:hover {
+  background: var(--accent-subtle);
+  color: var(--accent-hover);
+}
+
+.sendBtn {
+  background: var(--accent-primary);
+  color: #fff;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.sendBtn:disabled {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.sendBtn:not(:disabled):hover {
+  background: var(--accent-hover);
+  transform: scale(1.05);
+}
+
 /* INPUT AREA */
 .inputArea {
   padding: 1rem 1.5rem;
   background: var(--bg-secondary);
   border-top: 1px solid var(--glass-border-subtle);
   z-index: 10;
+  position: relative;
+}
+
+.suggestionsPopup {
+  position: absolute;
+  bottom: 100%;
+  left: 1.5rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.5rem;
+  max-height: 150px;
+  overflow-y: auto;
+  z-index: 50;
+  min-width: 150px;
+  padding: 0.25rem;
+}
+
+.suggestionsPopup button {
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border: none;
+  text-align: left;
+  color: var(--accent-primary);
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.suggestionsPopup button:hover {
+  background: var(--bg-tertiary);
 }
 
 .inputForm {

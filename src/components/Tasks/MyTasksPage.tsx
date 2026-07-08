@@ -4,9 +4,8 @@ import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useWorkspace } from '@/hooks/api/useWorkspace';
-import { useMobileSidebar } from '@/contexts/MobileSidebarContext';
 import { getMyTasks } from '@/lib/workspace-stats';
-import { Menu, CheckSquare, Calendar, LayoutDashboard } from 'lucide-react';
+import { CheckSquare, Calendar, LayoutDashboard } from 'lucide-react';
 import styles from './Tasks.module.css';
 
 function dueLabel(dueDate?: string) {
@@ -27,7 +26,6 @@ function dueLabel(dueDate?: string) {
 
 export default function MyTasksPage() {
   const router = useRouter();
-  const { openSidebar } = useMobileSidebar();
   const user = useAuthStore((s) => s.user);
   const { data: workspace, isLoading } = useWorkspace(user?.id ?? null, user?.email ?? null);
 
@@ -107,10 +105,7 @@ export default function MyTasksPage() {
     <div className={styles.container}>
       <header className={styles.header}>
         <div className={styles.headerTop}>
-          <button className={styles.menuBtn} onClick={openSidebar}>
-            <Menu size={20} />
-          </button>
-          <h1>Görevlerim</h1>
+          <h1>Bana Atananlar</h1>
         </div>
         <p>Size atanan tüm görevler — panolardan bağımsız tek listede.</p>
       </header>

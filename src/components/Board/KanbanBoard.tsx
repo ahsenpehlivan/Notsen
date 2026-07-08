@@ -22,7 +22,7 @@ import { useBoardMutations, useColumnMutations, useTaskMutations } from '@/hooks
 import { useWorkspaceUpdater } from '@/hooks/api/useWorkspaceUpdater';
 import BoardColumn from './BoardColumn';
 import BoardCard from './BoardCard';
-import { Plus, Settings2, Menu, UserPlus, Tag, Search, X, ChevronDown, Activity, Download } from 'lucide-react';
+import { Plus, Settings2, UserPlus, Tag, Search, X, ChevronDown, Activity, Download } from 'lucide-react';
 import { exportBoardJSON, exportBoardCSV } from '@/lib/export-board';
 import { toast } from '@/lib/toast';
 import styles from './Board.module.css';
@@ -31,10 +31,8 @@ import ColumnReorderModal from './ColumnReorderModal';
 import InviteModal from './InviteModal';
 import LabelsManagerModal from './LabelsManagerModal';
 import ActivityPanel from './ActivityPanel';
-
 export default function KanbanBoard() {
   const { activeBoardId, setIsDragging } = useBoardStore();
-  const { openSidebar } = useMobileSidebar();
   const user = useAuthStore((s) => s.user);
 
   const { data: workspace, isLoading } = useWorkspace(user?.id ?? null, user?.email ?? null);
@@ -168,9 +166,6 @@ export default function KanbanBoard() {
   if (!activeBoardId || !activeBoard) {
     return (
       <div className={styles.boardContainer} style={{ alignItems: 'center', justifyContent: 'center' }}>
-        <button className={styles.menuBtn} onClick={openSidebar} style={{ position: 'absolute', top: '1.25rem', left: '1.25rem' }}>
-          <Menu size={24} />
-        </button>
         <h2 style={{ color: 'var(--text-muted)' }}>Lütfen yandaki menüden bir pano seçin veya yeni pano oluşturun.</h2>
       </div>
     );
@@ -180,9 +175,6 @@ export default function KanbanBoard() {
     <div className={styles.boardContainer}>
       <header className={styles.boardHeader}>
         <div className={styles.boardHeaderLeft}>
-          <button className={styles.menuBtn} onClick={openSidebar}>
-            <Menu size={20} />
-          </button>
           {isEditingBoardTitle && !isViewer ? (
             <input
               autoFocus

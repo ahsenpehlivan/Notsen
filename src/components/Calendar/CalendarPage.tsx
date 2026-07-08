@@ -4,9 +4,8 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useWorkspace } from '@/hooks/api/useWorkspace';
-import { useMobileSidebar } from '@/contexts/MobileSidebarContext';
 import { getTasksByDate } from '@/lib/workspace-stats';
-import { Menu, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import styles from './Calendar.module.css';
 
 const WEEKDAYS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
@@ -21,7 +20,6 @@ function toDateKey(year: number, month: number, day: number) {
 
 export default function CalendarPage() {
   const router = useRouter();
-  const { openSidebar } = useMobileSidebar();
   const user = useAuthStore((s) => s.user);
   const { data: workspace, isLoading } = useWorkspace(user?.id ?? null, user?.email ?? null);
 
@@ -89,9 +87,6 @@ export default function CalendarPage() {
     <div className={styles.container}>
       <header className={styles.header}>
         <div className={styles.headerTop}>
-          <button className={styles.menuBtn} onClick={openSidebar}>
-            <Menu size={20} />
-          </button>
           <h1>Takvim</h1>
         </div>
         <p>Son tarihi olan görevlerinizi aylık görünümde takip edin.</p>

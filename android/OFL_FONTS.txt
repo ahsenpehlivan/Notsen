@@ -1,0 +1,6 @@
+This repository includes fonts distributed under the SIL Open Font License (OFL).
+
+- Inter: Copyright (c) 2020, Rasmus Andersson (me@rsms.me)
+- Plus Jakarta Sans: Copyright (c) 2020, Tokopedia (info@tokopedia.com)
+
+SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007

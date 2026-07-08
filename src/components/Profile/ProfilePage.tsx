@@ -8,12 +8,11 @@ import { useWorkspace } from '@/hooks/api/useWorkspace';
 import { getWorkspaceStats } from '@/lib/workspace-stats';
 import { clearLastBoardId } from '@/lib/preferences';
 import { toast } from '@/lib/toast';
-import { User, Shield, BarChart3, Calendar, Mail, AlertTriangle, Menu, CheckSquare, Clock } from 'lucide-react';
+import { User, Shield, BarChart3, Calendar, Mail, AlertTriangle, CheckSquare, Clock } from 'lucide-react';
 import styles from './Profile.module.css';
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { openSidebar } = useMobileSidebar();
   const { user, logout, linkGoogle, linkGitHub, deleteAccount, isLoading } = useAuthStore();
   const { data: workspace, isLoading: workspaceLoading } = useWorkspace(user?.id ?? null, user?.email ?? null);
 
@@ -60,9 +59,6 @@ export default function ProfilePage() {
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.headerTop}>
-          <button className={styles.menuBtn} onClick={openSidebar}>
-            <Menu size={20} />
-          </button>
           <h1>Profilim</h1>
         </div>
         <p>Hesap bilgilerinizi ve istatistiklerinizi buradan görüntüleyebilirsiniz.</p>

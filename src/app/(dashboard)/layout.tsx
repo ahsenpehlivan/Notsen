@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Sidebar from '@/components/Sidebar/Sidebar';
+import { useRouter, usePathname } from 'next/navigation';
 import { useBoardStore } from '@/store/useBoardStore';
 import { useActiveBoard } from '@/hooks/useActiveBoard';
 import { getLastBoardId } from '@/lib/preferences';
@@ -12,6 +11,13 @@ import { MobileSidebarProvider } from '@/contexts/MobileSidebarContext';
 import { useWorkspace } from '@/hooks/api/useWorkspace';
 import { useRealtimeSync } from '@/hooks/api/useRealtimeSync';
 import NotificationBell from '@/components/Notifications/NotificationBell';
+
+import AppRail from '@/components/Navigation/AppRail';
+import KanbanSidebar from '@/components/Navigation/KanbanSidebar';
+import NotesSidebar from '@/components/Navigation/NotesSidebar';
+import BottomTabBar from '@/components/Navigation/BottomTabBar';
+import GlobalQuickCapture from '@/components/Navigation/GlobalQuickCapture';
+import styles from '@/components/Navigation/Navigation.module.css';
 
 function LoadingSpinner() {
   return (
@@ -27,6 +33,7 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
 
   const { theme } = useBoardStore();
   const { activeBoardId, setActiveBoard } = useActiveBoard();
@@ -84,14 +91,26 @@ export default function DashboardLayout({
     );
   }
 
+  const isNotesMode = pathname.startsWith('/notes');
+
   return (
     <MobileSidebarProvider>
       <main style={{ display: 'flex', width: '100vw', height: '100vh', overflow: 'hidden', backgroundColor: 'var(--bg-primary)' }}>
-        <Sidebar />
-        <div style={{ flex: 1, height: '100vh', overflow: 'hidden', position: 'relative' }}>
+        
+        {/* DESKTOP NAVIGATION */}
+        <AppRail />
+        {isNotesMode ? <NotesSidebar /> : <KanbanSidebar />}
+
+        {/* CONTENT AREA */}
+        <div className={styles.contentArea}>
           <NotificationBell />
           {children}
         </div>
+
+        {/* MOBILE NAVIGATION */}
+        <BottomTabBar />
+        <GlobalQuickCapture />
+
       </main>
     </MobileSidebarProvider>
   );
