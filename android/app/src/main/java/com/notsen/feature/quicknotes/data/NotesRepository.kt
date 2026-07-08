@@ -24,21 +24,24 @@ class NotesRepository @Inject constructor(
     }
     private val table = supabaseClient.postgrest["notes"]
 
-    suspend fun getNotes(limit: Long = 50, offset: Long = 0): List<Note> = withContext(Dispatchers.IO) {
+    suspend fun getNotes(limit: Long = 1000, offset: Long = 0): List<Note> = withContext(Dispatchers.IO) {
         table.select {
             order("created_at", order = Order.DESCENDING)
             range(offset, offset + limit - 1)
         }.decodeList<Note>()
     }
 
-    suspend fun addNote(content: String, tags: List<String>): Note = withContext(Dispatchers.IO) {
+    suspend fun addNote(title: String, content: String, tags: List<String>): Note = withContext(Dispatchers.IO) {
         val user = supabaseClient.auth.currentUserOrNull()
         val userId = user?.id ?: ""
         val newNote = Note(
             id = UUID.randomUUID().toString(),
             userId = userId,
+            title = title,
             content = content,
-            tags = tags
+            tags = tags,
+            isPinned = false,
+            isArchived = false
         )
         // Insert the note and return the inserted instance (with DB generated fields like created_at)
         val insertedNote = supabaseClient.postgrest["notes"].insert(newNote) {
@@ -50,14 +53,29 @@ class NotesRepository @Inject constructor(
         insertedNote
     }
 
-    suspend fun updateNote(id: String, content: String, tags: List<String>): Note = withContext(Dispatchers.IO) {
+    suspend fun updateNote(id: String, title: String, content: String, tags: List<String>): Note = withContext(Dispatchers.IO) {
         // We only update the relevant fields.
         table.update(
             {
+                set("title", title)
                 set("content", content)
                 set("tags", tags)
             }
         ) {
+            filter { eq("id", id) }
+            select()
+        }.decodeSingle<Note>()
+    }
+
+    suspend fun togglePinStatus(id: String, isPinned: Boolean): Note = withContext(Dispatchers.IO) {
+        table.update({ set("is_pinned", isPinned) }) {
+            filter { eq("id", id) }
+            select()
+        }.decodeSingle<Note>()
+    }
+
+    suspend fun toggleArchiveStatus(id: String, isArchived: Boolean): Note = withContext(Dispatchers.IO) {
+        table.update({ set("is_archived", isArchived) }) {
             filter { eq("id", id) }
             select()
         }.decodeSingle<Note>()
