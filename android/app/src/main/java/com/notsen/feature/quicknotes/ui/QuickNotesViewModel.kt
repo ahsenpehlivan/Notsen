@@ -21,6 +21,9 @@ import javax.inject.Inject
 data class QuickNotesUiState(
     val isLoading: Boolean = false,
     val isAddingNote: Boolean = false,
+    val isSaving: Boolean = false,
+    val pinningNoteIds: Set<String> = emptySet(),
+    val archivingNoteIds: Set<String> = emptySet(),
     val allNotes: List<Note> = emptyList(),
     val visibleNotes: List<Note> = emptyList(),
     val searchQuery: String = "",
@@ -30,7 +33,9 @@ data class QuickNotesUiState(
     val showArchived: Boolean = false,
     val sortOption: NoteSortOption = NoteSortOption.UPDATED_DESC,
     val availableTags: List<String> = emptyList(),
-    val error: String? = null
+    val error: String? = null,
+    val snackbarMessage: String? = null,
+    val recentlyArchivedNote: Note? = null
 )
 
 @OptIn(FlowPreview::class)
@@ -219,8 +224,9 @@ class QuickNotesViewModel @Inject constructor(
 
     fun togglePinStatus(id: String, currentStatus: Boolean) {
         viewModelScope.launch {
+            _uiState.update { it.copy(pinningNoteIds = it.pinningNoteIds + id) }
             try {
-                // Optimistic
+                // Optimistic UI updates early
                 val updatedNotes = _uiState.value.allNotes.map {
                     if (it.id == id) it.copy(isPinned = !currentStatus) else it
                 }
@@ -229,21 +235,34 @@ class QuickNotesViewModel @Inject constructor(
 
                 repository.togglePinStatus(id, !currentStatus)
             } catch (e: Exception) {
-                // Revert
+                // Revert Optimistic update
                 refreshNotes()
                 _uiState.update { it.copy(error = "Pin güncellenemedi: ${e.message}") }
+            } finally {
+                _uiState.update { it.copy(pinningNoteIds = it.pinningNoteIds - id) }
             }
         }
     }
 
     fun toggleArchiveStatus(id: String, currentStatus: Boolean) {
         viewModelScope.launch {
+            _uiState.update { it.copy(archivingNoteIds = it.archivingNoteIds + id) }
             try {
-                // Optimistic
+                // Optimistic update
                 val updatedNotes = _uiState.value.allNotes.map {
                     if (it.id == id) it.copy(isArchived = !currentStatus) else it
                 }
-                _uiState.update { it.copy(allNotes = updatedNotes) }
+                
+                val targetNote = _uiState.value.allNotes.find { it.id == id }
+                val message = if (!currentStatus) "Not arşivlendi" else "Not arşivden çıkarıldı"
+
+                _uiState.update { 
+                    it.copy(
+                        allNotes = updatedNotes,
+                        snackbarMessage = message,
+                        recentlyArchivedNote = if (!currentStatus) targetNote else null
+                    ) 
+                }
                 applyFilters()
 
                 repository.toggleArchiveStatus(id, !currentStatus)
@@ -251,8 +270,20 @@ class QuickNotesViewModel @Inject constructor(
                 // Revert
                 refreshNotes()
                 _uiState.update { it.copy(error = "Arşiv güncellenemedi: ${e.message}") }
+            } finally {
+                _uiState.update { it.copy(archivingNoteIds = it.archivingNoteIds - id) }
             }
         }
+    }
+
+    fun undoArchive() {
+        val note = _uiState.value.recentlyArchivedNote ?: return
+        toggleArchiveStatus(note.id, currentStatus = true)
+        clearSnackbar()
+    }
+
+    fun clearSnackbar() {
+        _uiState.update { it.copy(snackbarMessage = null) }
     }
 
     fun deleteNote(id: String) {

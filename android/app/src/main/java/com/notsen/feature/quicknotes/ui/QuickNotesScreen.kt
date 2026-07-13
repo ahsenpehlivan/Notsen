@@ -36,6 +36,11 @@ import com.notsen.core.designsystem.components.NotsenTagChip
 import com.notsen.core.model.Note
 import com.notsen.core.model.NoteDateFilter
 import com.notsen.core.model.NoteSortOption
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.material.icons.filled.Unarchive
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,12 +53,29 @@ fun QuickNotesScreen(
     var inputContent by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val focusManager = LocalFocusManager.current
 
     var showSortMenu by remember { mutableStateOf(false) }
+
+    LaunchedEffect(uiState.snackbarMessage) {
+        uiState.snackbarMessage?.let { msg ->
+            val result = snackbarHostState.showSnackbar(
+                message = msg,
+                actionLabel = "Geri al",
+                duration = SnackbarDuration.Short
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                viewModel.undoArchive()
+            }
+            viewModel.clearSnackbar()
+        }
+    }
 
     NotsenBackground {
         Scaffold(
             containerColor = Color.Transparent,
+            snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
                 TopAppBar(
                     title = { Text("Hızlı Notlar", style = NotsenTheme.typography.headlineMedium) },
@@ -133,7 +155,9 @@ fun QuickNotesScreen(
                         unfocusedContainerColor = NotsenTheme.colors.bgHover
                     ),
                     shape = RoundedCornerShape(24.dp),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() })
                 )
 
                 // Filters Row
@@ -145,6 +169,13 @@ fun QuickNotesScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     val allActive = !uiState.showPinnedOnly && !uiState.showArchived && uiState.dateFilter == NoteDateFilter.ALL && uiState.selectedTags.isEmpty()
+                    if (!allActive || uiState.searchQuery.isNotEmpty()) {
+                        FilterChipUi(text = "Filtreleri Temizle", selected = false, onClick = { 
+                            viewModel.clearFilters()
+                            viewModel.updateSearchQuery("")
+                            focusManager.clearFocus()
+                        })
+                    }
                     FilterChipUi(text = "Tümü", selected = allActive, onClick = { viewModel.clearFilters() })
                     FilterChipUi(text = "Sabitlenenler", selected = uiState.showPinnedOnly, onClick = { viewModel.togglePinnedOnly() })
                     FilterChipUi(text = "Arşivlenenler", selected = uiState.showArchived, onClick = { viewModel.toggleShowArchived() })
@@ -175,9 +206,19 @@ fun QuickNotesScreen(
 
                 // Note List
                 if (uiState.visibleNotes.isEmpty() && !uiState.isLoading) {
+                    val titleText = when {
+                        uiState.showArchived -> "Arşiv boş"
+                        uiState.searchQuery.isNotEmpty() || !(!uiState.showPinnedOnly && !uiState.showArchived && uiState.dateFilter == NoteDateFilter.ALL && uiState.selectedTags.isEmpty()) -> "Sonuç bulunamadı"
+                        else -> "Henüz hızlı not yok"
+                    }
+                    val subtitleText = when {
+                        uiState.showArchived -> "Arşivlediğin notlar burada görünür."
+                        uiState.searchQuery.isNotEmpty() || !(!uiState.showPinnedOnly && !uiState.showArchived && uiState.dateFilter == NoteDateFilter.ALL && uiState.selectedTags.isEmpty()) -> "Arama veya filtreleri temizlemeyi deneyin."
+                        else -> "Aklına geleni hemen yakala."
+                    }
                     Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                         Text(
-                            text = "Sonuç bulunamadı\nArama veya filtreleri temizlemeyi deneyin.",
+                            text = "$titleText\n$subtitleText",
                             color = NotsenTheme.colors.textSecondary,
                             style = NotsenTheme.typography.bodyMedium,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -196,7 +237,8 @@ fun QuickNotesScreen(
                                 note = note,
                                 onDelete = { viewModel.deleteNote(note.id) },
                                 onTogglePin = { viewModel.togglePinStatus(note.id, note.isPinned) },
-                                onToggleArchive = { viewModel.toggleArchiveStatus(note.id, note.isArchived) }
+                                onToggleArchive = { viewModel.toggleArchiveStatus(note.id, note.isArchived) },
+                                showUnarchiveIcon = uiState.showArchived
                             )
                             Spacer(modifier = Modifier.height(NotsenTheme.spacing.md))
                         }
@@ -241,7 +283,18 @@ fun QuickNotesScreen(
                                 focusedTextColor = NotsenTheme.colors.textPrimary,
                                 unfocusedTextColor = NotsenTheme.colors.textPrimary
                             ),
-                            maxLines = 4
+                            maxLines = 4,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                            keyboardActions = KeyboardActions(onSend = {
+                                if (inputContent.isNotBlank() && !uiState.isAddingNote) {
+                                    viewModel.addNote(inputContent)
+                                    inputContent = ""
+                                    focusManager.clearFocus()
+                                    coroutineScope.launch {
+                                        listState.animateScrollToItem(0)
+                                    }
+                                }
+                            })
                         )
 
                         IconButton(
@@ -249,6 +302,7 @@ fun QuickNotesScreen(
                                 if (inputContent.isNotBlank()) {
                                     viewModel.addNote(inputContent)
                                     inputContent = ""
+                                    focusManager.clearFocus()
                                     coroutineScope.launch {
                                         listState.animateScrollToItem(0)
                                     }
@@ -299,10 +353,11 @@ fun NoteItem(
     note: Note,
     onDelete: () -> Unit,
     onTogglePin: () -> Unit,
-    onToggleArchive: () -> Unit
+    onToggleArchive: () -> Unit,
+    showUnarchiveIcon: Boolean = false
 ) {
     val borderColor = if (note.isPinned) NotsenTheme.colors.accentPrimary else NotsenTheme.colors.glassBorderSubtle
-    val bgColor = if (note.isPinned) NotsenTheme.colors.bgHover else NotsenTheme.colors.bgTertiary
+    val bgColor = if (note.isPinned) NotsenTheme.colors.accentSubtle else NotsenTheme.colors.bgTertiary
 
     val lines = note.content.lines()
     val displayTitle = if (note.title.isNotEmpty()) {
@@ -344,7 +399,10 @@ fun NoteItem(
 
             if (note.tags.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(NotsenTheme.spacing.md))
-                Row(horizontalArrangement = Arrangement.spacedBy(NotsenTheme.spacing.xs)) {
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(NotsenTheme.spacing.xs)
+                ) {
                     note.tags.forEach { tag ->
                         NotsenTagChip(
                             text = "#$tag",
@@ -379,8 +437,8 @@ fun NoteItem(
                     }
                     IconButton(onClick = onToggleArchive, modifier = Modifier.size(32.dp)) {
                         Icon(
-                            imageVector = Icons.Default.Archive,
-                            contentDescription = "Arşivle",
+                            imageVector = if (showUnarchiveIcon) Icons.Default.Unarchive else Icons.Default.Archive,
+                            contentDescription = if (showUnarchiveIcon) "Arşivden Çıkar" else "Arşivle",
                             tint = if (note.isArchived) NotsenTheme.colors.accentPrimary else NotsenTheme.colors.textSecondary,
                             modifier = Modifier.size(20.dp)
                         )
