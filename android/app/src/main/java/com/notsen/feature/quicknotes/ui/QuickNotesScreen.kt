@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -41,6 +42,10 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material.icons.filled.Unarchive
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Check
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,6 +62,8 @@ fun QuickNotesScreen(
     val focusManager = LocalFocusManager.current
 
     var showSortMenu by remember { mutableStateOf(false) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+    var showUnsavedChangesDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.snackbarMessage) {
         uiState.snackbarMessage?.let { msg ->
@@ -66,7 +73,11 @@ fun QuickNotesScreen(
                 duration = SnackbarDuration.Short
             )
             if (result == SnackbarResult.ActionPerformed) {
-                viewModel.undoArchive()
+                if (uiState.recentlyDeletedNote != null) {
+                    viewModel.undoDelete()
+                } else if (uiState.recentlyArchivedNote != null) {
+                    viewModel.undoArchive()
+                }
             }
             viewModel.clearSnackbar()
         }
@@ -235,7 +246,11 @@ fun QuickNotesScreen(
                         items(uiState.visibleNotes, key = { it.id }) { note ->
                             NoteItem(
                                 note = note,
-                                onDelete = { viewModel.deleteNote(note.id) },
+                                onClick = { viewModel.openNoteDetail(note) },
+                                onDelete = { 
+                                    viewModel.openNoteDetail(note)
+                                    showDeleteConfirmDialog = true
+                                },
                                 onTogglePin = { viewModel.togglePinStatus(note.id, note.isPinned) },
                                 onToggleArchive = { viewModel.toggleArchiveStatus(note.id, note.isArchived) },
                                 showUnarchiveIcon = uiState.showArchived
@@ -319,9 +334,75 @@ fun QuickNotesScreen(
                     }
                 }
             }
+            }
+        }
+
+        if (uiState.isDetailOpen && uiState.selectedNote != null) {
+            val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+            ModalBottomSheet(
+                onDismissRequest = {
+                    if (uiState.isEditing && uiState.editingContent != uiState.selectedNote?.content) {
+                        showUnsavedChangesDialog = true
+                    } else {
+                        viewModel.closeNoteDetail()
+                    }
+                },
+                sheetState = sheetState,
+                containerColor = NotsenTheme.colors.bgPrimary
+            ) {
+                NoteDetailSheetContent(
+                    uiState = uiState,
+                    viewModel = viewModel,
+                    onDeleteClicked = { showDeleteConfirmDialog = true }
+                )
+            }
+        }
+
+        if (showDeleteConfirmDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirmDialog = false },
+                title = { Text("Notu Sil", color = NotsenTheme.colors.textPrimary) },
+                text = { Text("Bu not silinsin mi?", color = NotsenTheme.colors.textSecondary) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        uiState.selectedNote?.let { viewModel.deleteNote(it.id) }
+                        showDeleteConfirmDialog = false
+                        viewModel.closeNoteDetail()
+                    }) {
+                        Text("Sil", color = NotsenTheme.colors.danger)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteConfirmDialog = false }) {
+                        Text("İptal", color = NotsenTheme.colors.textSecondary)
+                    }
+                },
+                containerColor = NotsenTheme.colors.bgSecondary
+            )
+        }
+
+        if (showUnsavedChangesDialog) {
+            AlertDialog(
+                onDismissRequest = { showUnsavedChangesDialog = false },
+                title = { Text("Kaydedilmemiş Değişiklikler", color = NotsenTheme.colors.textPrimary) },
+                text = { Text("Değişiklikler kaydedilmedi. Çıkmak istiyor musun?", color = NotsenTheme.colors.textSecondary) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showUnsavedChangesDialog = false
+                        viewModel.closeNoteDetail()
+                    }) {
+                        Text("Çık", color = NotsenTheme.colors.danger)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showUnsavedChangesDialog = false }) {
+                        Text("İptal", color = NotsenTheme.colors.textSecondary)
+                    }
+                },
+                containerColor = NotsenTheme.colors.bgSecondary
+            )
         }
     }
-}
 
 @Composable
 fun FilterChipUi(text: String, selected: Boolean, onClick: () -> Unit) {
@@ -351,6 +432,7 @@ fun FilterChipUi(text: String, selected: Boolean, onClick: () -> Unit) {
 @Composable
 fun NoteItem(
     note: Note,
+    onClick: () -> Unit,
     onDelete: () -> Unit,
     onTogglePin: () -> Unit,
     onToggleArchive: () -> Unit,
@@ -372,7 +454,7 @@ fun NoteItem(
     }
 
     NotsenGlassCard(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
         shape = NotsenTheme.shapes.md,
         backgroundColor = bgColor,
         borderColor = borderColor
@@ -451,6 +533,144 @@ fun NoteItem(
                             modifier = Modifier.size(20.dp)
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NoteDetailSheetContent(
+    uiState: QuickNotesUiState,
+    viewModel: QuickNotesViewModel,
+    onDeleteClicked: () -> Unit
+) {
+    val note = uiState.selectedNote ?: return
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(NotsenTheme.spacing.lg)
+            .padding(bottom = 32.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = if (uiState.isEditing) "Notu Düzenle" else "Not Detayı",
+                style = NotsenTheme.typography.titleLarge,
+                color = NotsenTheme.colors.textPrimary
+            )
+            Row {
+                if (uiState.isEditing) {
+                    IconButton(onClick = { viewModel.cancelEditing() }) {
+                        Icon(Icons.Default.Close, contentDescription = "İptal", tint = NotsenTheme.colors.textSecondary)
+                    }
+                    IconButton(onClick = { viewModel.saveEditedNote() }, enabled = uiState.editingContent.isNotBlank() && uiState.updatingNoteId != note.id) {
+                        if (uiState.updatingNoteId == note.id) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = NotsenTheme.colors.accentPrimary, strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Default.Check, contentDescription = "Kaydet", tint = NotsenTheme.colors.accentPrimary)
+                        }
+                    }
+                } else {
+                    IconButton(onClick = { viewModel.startEditing() }) {
+                        Icon(Icons.Default.Edit, contentDescription = "Düzenle", tint = NotsenTheme.colors.textSecondary)
+                    }
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(NotsenTheme.spacing.md))
+
+        if (uiState.isEditing) {
+            OutlinedTextField(
+                value = uiState.editingContent,
+                onValueChange = { viewModel.updateEditingContent(it) },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 200.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = NotsenTheme.colors.accentPrimary,
+                    unfocusedBorderColor = NotsenTheme.colors.glassBorderSubtle,
+                    focusedTextColor = NotsenTheme.colors.textPrimary,
+                    unfocusedTextColor = NotsenTheme.colors.textPrimary,
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent
+                ),
+                textStyle = NotsenTheme.typography.bodyLarge
+            )
+            
+            if (uiState.editingTags.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(NotsenTheme.spacing.sm))
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(NotsenTheme.spacing.xs)
+                ) {
+                    uiState.editingTags.forEach { tag ->
+                        NotsenTagChip(
+                            text = "#$tag",
+                            backgroundColor = NotsenTheme.colors.accentSubtle,
+                            textColor = NotsenTheme.colors.accentPrimary
+                        )
+                    }
+                }
+            }
+        } else {
+            Column(modifier = Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState())) {
+                Text(
+                    text = note.content,
+                    style = NotsenTheme.typography.bodyLarge,
+                    color = NotsenTheme.colors.textPrimary
+                )
+            }
+            
+            if (note.tags.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(NotsenTheme.spacing.md))
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(NotsenTheme.spacing.xs)
+                ) {
+                    note.tags.forEach { tag ->
+                        NotsenTagChip(
+                            text = "#$tag",
+                            backgroundColor = NotsenTheme.colors.accentSubtle,
+                            textColor = NotsenTheme.colors.accentPrimary
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(NotsenTheme.spacing.lg))
+            Text("Oluşturulma: ${note.createdAt.take(16).replace("T", " ")}", style = NotsenTheme.typography.labelSmall, color = NotsenTheme.colors.textSecondary)
+            Text("Güncellenme: ${note.updatedAt.take(16).replace("T", " ")}", style = NotsenTheme.typography.labelSmall, color = NotsenTheme.colors.textSecondary)
+
+            Spacer(modifier = Modifier.height(NotsenTheme.spacing.lg))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                TextButton(onClick = { viewModel.togglePinStatus(note.id, note.isPinned) }) {
+                    Icon(if (note.isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin, contentDescription = null, tint = NotsenTheme.colors.accentPrimary)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(if (note.isPinned) "Sabiti Kaldır" else "Sabitle", color = NotsenTheme.colors.accentPrimary)
+                }
+                
+                TextButton(onClick = { 
+                    viewModel.toggleArchiveStatus(note.id, note.isArchived)
+                    viewModel.closeNoteDetail()
+                }) {
+                    Icon(if (note.isArchived) Icons.Default.Unarchive else Icons.Default.Archive, contentDescription = null, tint = NotsenTheme.colors.accentPrimary)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(if (note.isArchived) "Arşivden Çıkar" else "Arşivle", color = NotsenTheme.colors.accentPrimary)
+                }
+                
+                TextButton(onClick = onDeleteClicked) {
+                    Icon(Icons.Default.Delete, contentDescription = null, tint = NotsenTheme.colors.danger)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Sil", color = NotsenTheme.colors.danger)
                 }
             }
         }

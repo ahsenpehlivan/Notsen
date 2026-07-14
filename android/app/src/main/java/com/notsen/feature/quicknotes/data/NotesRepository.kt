@@ -26,9 +26,15 @@ class NotesRepository @Inject constructor(
 
     suspend fun getNotes(limit: Long = 1000, offset: Long = 0): List<Note> = withContext(Dispatchers.IO) {
         table.select {
+            filter {
+                // PostgREST "is.null" equivalent: eq("deleted_at", null) usually works,
+                // or we can use exact("deleted_at", null) if eq is not nullable.
+                // supabase-kt provides `filter` method to pass raw operator
+                filter("deleted_at", io.github.jan.supabase.postgrest.query.filter.FilterOperator.IS, null)
+            }
             order("created_at", order = Order.DESCENDING)
             range(offset, offset + limit - 1)
-        }.decodeList<Note>()
+        }.decodeList<Note>().filter { it.deletedAt == null }
     }
 
     suspend fun addNote(title: String, content: String, tags: List<String>): Note = withContext(Dispatchers.IO) {
@@ -54,7 +60,7 @@ class NotesRepository @Inject constructor(
     }
 
     suspend fun updateNote(id: String, title: String, content: String, tags: List<String>): Note = withContext(Dispatchers.IO) {
-        // We only update the relevant fields.
+        // We only update the relevant fields. Server trigger will handle updated_at.
         table.update(
             {
                 set("title", title)
@@ -82,7 +88,13 @@ class NotesRepository @Inject constructor(
     }
 
     suspend fun deleteNote(id: String) = withContext(Dispatchers.IO) {
-        table.delete {
+        table.update({ set("deleted_at", java.time.Instant.now().toString()) }) {
+            filter { eq("id", id) }
+        }
+    }
+
+    suspend fun undoDeleteNote(id: String) = withContext(Dispatchers.IO) {
+        table.update({ set("deleted_at", null as String?) }) {
             filter { eq("id", id) }
         }
     }

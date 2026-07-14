@@ -80,4 +80,13 @@ class NoteFilterReducerTest {
         assertEquals(1, result.size)
         assertEquals("today1", result.first().id)
     }
+
+    @Test
+    fun `notes with deletedAt are filtered out`() {
+        val deletedNote = noteToday1.copy(id = "deleted1", deletedAt = now.toString())
+        val result = filterAndSortNotes(listOf(noteToday1, deletedNote), "", emptySet(), NoteDateFilter.ALL, false, false, NoteSortOption.UPDATED_DESC, now)
+        
+        assertEquals(1, result.size)
+        assertEquals("today1", result.first().id)
+    }
 }

@@ -63,6 +63,9 @@ fun filterAndSortNotes(
     var logCount = 0
 
     return notes.filter { note ->
+        // 0. Soft delete filter
+        if (note.deletedAt != null) return@filter false
+
         // 1. Archive filter
         if (showArchived) {
             if (!note.isArchived) return@filter false

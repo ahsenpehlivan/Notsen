@@ -19,6 +19,8 @@ data class Note(
     val isPinned: Boolean = false,
     @SerialName("is_archived")
     val isArchived: Boolean = false,
+    @SerialName("deleted_at")
+    val deletedAt: String? = null,
     @SerialName("converted_task_id")
     val convertedTaskId: String? = null
 )

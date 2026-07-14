@@ -35,7 +35,15 @@ data class QuickNotesUiState(
     val availableTags: List<String> = emptyList(),
     val error: String? = null,
     val snackbarMessage: String? = null,
-    val recentlyArchivedNote: Note? = null
+    val recentlyArchivedNote: Note? = null,
+    val selectedNote: Note? = null,
+    val isDetailOpen: Boolean = false,
+    val isEditing: Boolean = false,
+    val editingContent: String = "",
+    val editingTags: List<String> = emptyList(),
+    val updatingNoteId: String? = null,
+    val deletingNoteId: String? = null,
+    val recentlyDeletedNote: Note? = null
 )
 
 @OptIn(FlowPreview::class)
@@ -288,20 +296,115 @@ class QuickNotesViewModel @Inject constructor(
 
     fun deleteNote(id: String) {
         viewModelScope.launch {
+            _uiState.update { it.copy(deletingNoteId = id) }
             try {
+                val targetNote = _uiState.value.allNotes.find { it.id == id }
                 repository.deleteNote(id)
                 _uiState.update { state ->
-                    state.copy(allNotes = state.allNotes.filter { it.id != id })
+                    state.copy(
+                        allNotes = state.allNotes.filter { it.id != id },
+                        snackbarMessage = "Not silindi",
+                        recentlyDeletedNote = targetNote,
+                        isDetailOpen = if (state.selectedNote?.id == id) false else state.isDetailOpen,
+                        selectedNote = if (state.selectedNote?.id == id) null else state.selectedNote
+                    )
                 }
                 applyFilters()
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = e.message) }
+            } finally {
+                _uiState.update { it.copy(deletingNoteId = null) }
             }
         }
     }
 
-    private fun extractTags(text: String): List<String> {
-        val regex = Regex("#[\\wığüşöçİĞÜŞÖÇ]+")
-        return regex.findAll(text).map { it.value.drop(1) }.toList()
+    fun undoDelete() {
+        val note = _uiState.value.recentlyDeletedNote ?: return
+        viewModelScope.launch {
+            try {
+                repository.undoDeleteNote(note.id)
+                _uiState.update { state ->
+                    state.copy(
+                        allNotes = state.allNotes + note,
+                        recentlyDeletedNote = null
+                    )
+                }
+                applyFilters()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Silme işlemi geri alınamadı: ${e.message}") }
+            }
+        }
+        clearSnackbar()
+    }
+
+    fun openNoteDetail(note: Note) {
+        _uiState.update { it.copy(selectedNote = note, isDetailOpen = true, isEditing = false) }
+    }
+
+    fun closeNoteDetail() {
+        _uiState.update { it.copy(isDetailOpen = false, isEditing = false, selectedNote = null) }
+    }
+
+    fun startEditing() {
+        val note = _uiState.value.selectedNote ?: return
+        _uiState.update { 
+            it.copy(
+                isEditing = true, 
+                editingContent = note.content,
+                editingTags = note.tags
+            ) 
+        }
+    }
+
+    fun cancelEditing() {
+        _uiState.update { it.copy(isEditing = false) }
+    }
+
+    fun updateEditingContent(content: String) {
+        _uiState.update { it.copy(editingContent = content, editingTags = extractTags(content)) }
+    }
+
+    fun saveEditedNote() {
+        val note = _uiState.value.selectedNote ?: return
+        val newContent = _uiState.value.editingContent
+        if (newContent.isBlank()) return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(updatingNoteId = note.id) }
+            try {
+                val newTags = extractTags(newContent)
+                val updatedNote = repository.updateNote(note.id, note.title, newContent, newTags)
+                
+                _uiState.update { state ->
+                    state.copy(
+                        allNotes = state.allNotes.map { if (it.id == note.id) updatedNote else it },
+                        isEditing = false,
+                        selectedNote = updatedNote
+                    )
+                }
+                applyFilters()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Not güncellenemedi: ${e.message}") }
+            } finally {
+                _uiState.update { it.copy(updatingNoteId = null) }
+            }
+        }
+    }
+
+    companion object {
+        // Visible for testing
+        fun extractTags(text: String): List<String> {
+            val regex = Regex("#[\\wığüşöçİĞÜŞÖÇ]+")
+            val trLocale = java.util.Locale("tr", "TR")
+            return regex.findAll(text)
+                .map { match -> 
+                    val cleaned = match.value.drop(1).trim()
+                    val normalized = java.text.Normalizer.normalize(cleaned, java.text.Normalizer.Form.NFC)
+                    normalized.lowercase(trLocale)
+                }
+                .filter { it.isNotBlank() }
+                .distinct()
+                .toList()
+        }
     }
 }
