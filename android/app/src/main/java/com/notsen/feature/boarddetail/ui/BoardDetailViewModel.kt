@@ -13,7 +13,10 @@ import com.notsen.feature.boarddetail.data.BoardMemberRepository
 import com.notsen.feature.boarddetail.data.activity.ActivityLogRepository
 import com.notsen.feature.boarddetail.data.realtime.BoardRealtimeManager
 import com.notsen.feature.home.data.BoardRepository
+import com.notsen.feature.myday.data.MyDayRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +34,7 @@ data class BoardDetailUiState(
     val isAddingTask: Boolean = false,
     val columns: List<Column> = emptyList(),
     val tasksByColumn: Map<String, List<Task>> = emptyMap(),
+    val plannedTaskIds: Set<String> = emptySet(),
     val members: List<BoardMember> = emptyList(),
     val activityLogs: List<ActivityLog> = emptyList(),
     val currentUserRole: PermissionRole? = null,
@@ -46,6 +50,7 @@ class BoardDetailViewModel @Inject constructor(
     private val repository: BoardRepository,
     private val memberRepository: BoardMemberRepository,
     private val activityLogRepository: ActivityLogRepository,
+    private val myDayRepository: MyDayRepository,
     private val realtimeManager: BoardRealtimeManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -128,11 +133,20 @@ class BoardDetailViewModel @Inject constructor(
         val columns = repository.getColumns(boardId)
         val allTasks = repository.getTasks(boardId)
         val tasksGrouped = allTasks.groupBy { it.columnId }
+        
+        val dateStr = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val plannedPlans = try {
+            myDayRepository.getDailyPlans(dateStr)
+        } catch (e: Exception) {
+            emptyList()
+        }
+        val plannedIds = plannedPlans.map { it.taskId }.toSet()
 
         _uiState.update {
             it.copy(
                 columns = columns,
-                tasksByColumn = tasksGrouped
+                tasksByColumn = tasksGrouped,
+                plannedTaskIds = plannedIds
             )
         }
     }

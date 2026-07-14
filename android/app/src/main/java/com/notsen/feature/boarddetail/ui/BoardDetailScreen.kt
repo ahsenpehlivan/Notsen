@@ -1,4 +1,4 @@
-﻿package com.notsen.feature.boarddetail.ui
+package com.notsen.feature.boarddetail.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material3.*
@@ -282,6 +283,7 @@ fun BoardDetailScreen(
                                 ColumnContainer(
                                     column = column,
                                     tasks = uiState.tasksByColumn[column.id] ?: emptyList(),
+                                    plannedTaskIds = uiState.plannedTaskIds,
                                     currentUserRole = uiState.currentUserRole,
                                     onAddTaskClick = { columnIdForNewTask = column.id },
                                     onTaskClick = { task ->
@@ -330,7 +332,7 @@ fun BoardDetailScreen(
                                 .width(260.dp)
                                 .zIndex(100f)
                         ) {
-                            TaskCard(task = draggedTask, isGhost = false, isOverlay = true, onClick = {})
+                            TaskCard(task = draggedTask, isGhost = false, isOverlay = true, isPlanned = uiState.plannedTaskIds.contains(draggedTask.id), onClick = {})
                         }
                     }
                 }
@@ -345,6 +347,7 @@ fun BoardDetailScreen(
 fun ColumnContainer(
     column: BoardColumn,
     tasks: List<Task>,
+    plannedTaskIds: Set<String>,
     currentUserRole: com.notsen.core.model.PermissionRole?,
     onAddTaskClick: () -> Unit,
     onTaskClick: (Task) -> Unit
@@ -415,7 +418,7 @@ fun ColumnContainer(
                                     dragDropState.taskBounds[task.id] = coords.boundsInRoot()
                                 }
                         ) {
-                            TaskCard(task = task, isGhost = isPlaceholder, isOverlay = false, onClick = { onTaskClick(task) })
+                            TaskCard(task = task, isGhost = isPlaceholder, isOverlay = false, isPlanned = plannedTaskIds.contains(task.id), onClick = { onTaskClick(task) })
                         }
                     }
                 }
@@ -451,7 +454,7 @@ fun ColumnContainer(
 }
 
 @Composable
-fun TaskCard(task: Task, isGhost: Boolean = false, isOverlay: Boolean = false, onClick: () -> Unit) {
+fun TaskCard(task: Task, isGhost: Boolean = false, isOverlay: Boolean = false, isPlanned: Boolean = false, onClick: () -> Unit) {
     val dragDropState = LocalBoardDragDropState.current
     val viewModel: BoardDetailViewModel = hiltViewModel()
 
@@ -459,6 +462,13 @@ fun TaskCard(task: Task, isGhost: Boolean = false, isOverlay: Boolean = false, o
 
     val baseModifier = if (isOverlay) {
         Modifier.fillMaxWidth().border(2.dp, NotsenTheme.colors.accentPrimary, NotsenTheme.shapes.md)
+    } else if (isPlanned) {
+        Modifier
+            .fillMaxWidth()
+            .border(1.5.dp, NotsenTheme.colors.accentPrimary, NotsenTheme.shapes.md)
+            .onGloballyPositioned { coords ->
+                cardPositionInRoot = coords.positionInRoot()
+            }
     } else {
         Modifier
             .fillMaxWidth()
@@ -479,11 +489,26 @@ fun TaskCard(task: Task, isGhost: Boolean = false, isOverlay: Boolean = false, o
         Column(
             modifier = Modifier.padding(NotsenTheme.spacing.lg)
         ) {
-            Text(
-                text = task.title,
-                style = NotsenTheme.typography.labelLarge,
-                color = NotsenTheme.colors.textPrimary
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(
+                    text = task.title,
+                    style = NotsenTheme.typography.labelLarge,
+                    color = NotsenTheme.colors.textPrimary,
+                    modifier = Modifier.weight(1f)
+                )
+                if (isPlanned) {
+                    Icon(
+                        imageVector = Icons.Default.DateRange,
+                        contentDescription = "Günüm'de",
+                        tint = NotsenTheme.colors.accentPrimary,
+                        modifier = Modifier.size(16.dp).padding(start = 4.dp)
+                    )
+                }
+            }
             if (task.description.isNotBlank()) {
                 Spacer(modifier = Modifier.height(NotsenTheme.spacing.xs))
                 Text(

@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -68,49 +69,51 @@ fun MainScreen(
                         unselectedTextColor = NotsenTheme.colors.textSecondary
                     )
 
+                    val topLevelRoutes = listOf("notes", "boards", "my_day", "profile")
+                    val navigateToTopLevel: (String) -> Unit = { route ->
+                        val currentRoute = currentDestination?.route
+                        if (currentRoute != null && currentRoute !in topLevelRoutes) {
+                            navController.popBackStack()
+                        }
+                        navController.navigate(route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+
+                    NavigationBarItem(
+                        icon = { Icon(Icons.AutoMirrored.Filled.Notes, contentDescription = "Hızlı Notlar") },
+                        label = { Text("Hızlı Notlar", style = NotsenTheme.typography.labelSmall) },
+                        selected = currentDestination?.hierarchy?.any { it.route == "notes" } == true,
+                        colors = navItemColors,
+                        onClick = { navigateToTopLevel("notes") }
+                    )
                     NavigationBarItem(
                         icon = { Icon(Icons.Default.Dashboard, contentDescription = "Panolar") },
                         label = { Text("Panolar", style = NotsenTheme.typography.labelSmall) },
                         selected = currentDestination?.hierarchy?.any { it.route == "boards" } == true,
                         colors = navItemColors,
-                        onClick = {
-                            navController.navigate("boards") {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
+                        onClick = { navigateToTopLevel("boards") }
                     )
                     NavigationBarItem(
-                        icon = { Icon(Icons.AutoMirrored.Filled.Notes, contentDescription = "Notlar") },
-                        label = { Text("Notlar", style = NotsenTheme.typography.labelSmall) },
-                        selected = currentDestination?.hierarchy?.any { it.route == "notes" } == true,
+                        icon = { Icon(Icons.Default.DateRange, contentDescription = "Günüm") },
+                        label = { Text("Günüm", style = NotsenTheme.typography.labelSmall) },
+                        selected = currentDestination?.hierarchy?.any { it.route == "my_day" } == true,
                         colors = navItemColors,
-                        onClick = {
-                            navController.navigate("notes") {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
+                        onClick = { navigateToTopLevel("my_day") }
                     )
                     NavigationBarItem(
                         icon = { Icon(Icons.Default.Person, contentDescription = "Profil") },
                         label = { Text("Profil", style = NotsenTheme.typography.labelSmall) },
                         selected = currentDestination?.hierarchy?.any { it.route == "profile" } == true,
                         colors = navItemColors,
-                        onClick = {
-                            navController.navigate("profile") {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
+                        onClick = { navigateToTopLevel("profile") }
                     )
                 }
             },
             floatingActionButton = {
-                if (currentDestination?.hierarchy?.any { it.route == "notes" } != true) {
+                if (currentDestination?.hierarchy?.any { it.route == "notes" } != true && currentDestination?.hierarchy?.any { it.route == "my_day" } != true) {
                     FloatingActionButton(
                         onClick = { showQuickCapture = true },
                         containerColor = NotsenTheme.colors.accentPrimary,
@@ -124,9 +127,16 @@ fun MainScreen(
         ) { innerPadding ->
             NavHost(
                 navController = navController,
-                startDestination = "boards",
+                startDestination = "notes",
                 modifier = Modifier.padding(innerPadding)
             ) {
+                composable("my_day") {
+                    com.notsen.feature.myday.ui.MyDayScreen(
+                        onNavigateToBoard = { boardId ->
+                            navController.navigate("board_detail/$boardId")
+                        }
+                    )
+                }
                 composable("boards") {
                     HomeScreen(onBoardClick = { boardId ->
                         navController.navigate("board_detail/$boardId")
