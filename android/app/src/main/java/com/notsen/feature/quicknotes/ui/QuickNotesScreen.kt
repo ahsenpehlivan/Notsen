@@ -13,8 +13,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+
 import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PushPin
@@ -26,6 +27,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -90,11 +94,7 @@ fun QuickNotesScreen(
             topBar = {
                 TopAppBar(
                     title = { Text("Hızlı Notlar", style = NotsenTheme.typography.headlineMedium) },
-                    navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri")
-                        }
-                    },
+
                     actions = {
                         Box {
                             IconButton(onClick = { showSortMenu = true }) {
@@ -438,8 +438,10 @@ fun NoteItem(
     onToggleArchive: () -> Unit,
     showUnarchiveIcon: Boolean = false
 ) {
-    val borderColor = if (note.isPinned) NotsenTheme.colors.accentPrimary else NotsenTheme.colors.glassBorderSubtle
-    val bgColor = if (note.isPinned) NotsenTheme.colors.accentSubtle else NotsenTheme.colors.bgTertiary
+    val bgColor = NotsenTheme.colors.bgTertiary
+    val borderColor = NotsenTheme.colors.glassBorderSubtle
+    val accentColor = NotsenTheme.colors.accentPrimary
+    val isPinned = note.isPinned
 
     val lines = note.content.lines()
     val displayTitle = if (note.title.isNotEmpty()) {
@@ -460,15 +462,48 @@ fun NoteItem(
         borderColor = borderColor
     ) {
         Column(
-            modifier = Modifier.padding(NotsenTheme.spacing.lg)
+            modifier = Modifier
+                .fillMaxWidth()
+                .drawBehind {
+                    if (isPinned) {
+                        drawRect(
+                            color = accentColor,
+                            topLeft = Offset.Zero,
+                            size = Size(width = 4.dp.toPx(), height = size.height)
+                        )
+                    }
+                }
+                .padding(NotsenTheme.spacing.lg)
         ) {
-            if (displayTitle.isNotEmpty()) {
-                Text(
-                    text = displayTitle,
-                    style = NotsenTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = NotsenTheme.colors.textPrimary,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    if (displayTitle.isNotEmpty()) {
+                        Text(
+                            text = displayTitle,
+                            style = NotsenTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = NotsenTheme.colors.textPrimary,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                    }
+                }
+
+                IconButton(
+                    onClick = onTogglePin,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .offset(x = 8.dp, y = (-8).dp)
+                ) {
+                    Icon(
+                        imageVector = if (isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
+                        contentDescription = if (isPinned) "Sabitlemeyi kaldır" else "Notu sabitle",
+                        tint = if (isPinned) NotsenTheme.colors.accentPrimary else NotsenTheme.colors.textSecondary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
             
             if (displayContent.isNotEmpty()) {
@@ -509,14 +544,6 @@ fun NoteItem(
                 )
 
                 Row {
-                    IconButton(onClick = onTogglePin, modifier = Modifier.size(32.dp)) {
-                        Icon(
-                            imageVector = if (note.isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
-                            contentDescription = "Sabitle",
-                            tint = if (note.isPinned) NotsenTheme.colors.accentPrimary else NotsenTheme.colors.textSecondary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
                     IconButton(onClick = onToggleArchive, modifier = Modifier.size(32.dp)) {
                         Icon(
                             imageVector = if (showUnarchiveIcon) Icons.Default.Unarchive else Icons.Default.Archive,

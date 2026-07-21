@@ -17,6 +17,12 @@ enum class PermissionRole {
     val canEditBoard: Boolean
         get() = this == OWNER
 
+    val canRenameBoard: Boolean
+        get() = this == OWNER
+
+    val canDeleteBoard: Boolean
+        get() = this == OWNER
+
     val canManageMembers: Boolean
         get() = this == OWNER
 

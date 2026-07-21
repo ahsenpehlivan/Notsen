@@ -6,20 +6,24 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.notsen.core.network.SessionCoordinator
 import javax.inject.Inject
 
 class MyDayRepository @Inject constructor(
-    private val supabaseClient: SupabaseClient
+    private val supabaseClient: SupabaseClient,
+    private val sessionCoordinator: SessionCoordinator
 ) {
     suspend fun getDailyPlans(dateStr: String): List<TaskDailyPlan> = withContext(Dispatchers.IO) {
         val user = supabaseClient.auth.currentUserOrNull() ?: return@withContext emptyList()
-        supabaseClient.postgrest["task_daily_plans"]
-            .select {
-                filter {
-                    eq("user_id", user.id)
-                    eq("planned_date", dateStr)
-                }
-            }.decodeList<TaskDailyPlan>()
+        sessionCoordinator.safeRequest {
+            supabaseClient.postgrest["task_daily_plans"]
+                .select {
+                    filter {
+                        eq("user_id", user.id)
+                        eq("planned_date", dateStr)
+                    }
+                }.decodeList<TaskDailyPlan>()
+        }
     }
 
     suspend fun addTaskToMyDay(taskId: String, dateStr: String): TaskDailyPlan = withContext(Dispatchers.IO) {
@@ -30,18 +34,22 @@ class MyDayRepository @Inject constructor(
             "task_id" to taskId,
             "planned_date" to dateStr
         )
-        supabaseClient.postgrest["task_daily_plans"].insert(planMap) {
-            select()
-        }.decodeSingle<TaskDailyPlan>()
+        sessionCoordinator.safeRequest {
+            supabaseClient.postgrest["task_daily_plans"].insert(planMap) {
+                select()
+            }.decodeSingle<TaskDailyPlan>()
+        }
     }
 
     suspend fun removeTaskFromMyDay(taskId: String, dateStr: String) = withContext(Dispatchers.IO) {
         val user = supabaseClient.auth.currentUserOrNull() ?: return@withContext
-        supabaseClient.postgrest["task_daily_plans"].delete {
-            filter {
-                eq("user_id", user.id)
-                eq("task_id", taskId)
-                eq("planned_date", dateStr)
+        sessionCoordinator.safeRequest {
+            supabaseClient.postgrest["task_daily_plans"].delete {
+                filter {
+                    eq("user_id", user.id)
+                    eq("task_id", taskId)
+                    eq("planned_date", dateStr)
+                }
             }
         }
     }

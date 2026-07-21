@@ -1,4 +1,4 @@
-package com.notsen.feature.boarddetail.ui
+﻿package com.notsen.feature.boarddetail.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -17,6 +17,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -55,6 +58,14 @@ fun BoardDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     val dragDropState = rememberBoardDragDropState()
 
+    LaunchedEffect(Unit) {
+        viewModel.navigationEvent.collect { action ->
+            when (action) {
+                is NavigationAction.NavigateBack -> onNavigateBack()
+            }
+        }
+    }
+
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -80,23 +91,31 @@ fun BoardDetailScreen(
 
     // Task Options Dialog State
     var selectedTask by remember { mutableStateOf<Task?>(null) }
-    var editTaskTitle by remember { mutableStateOf("") }
-    var editTaskDesc by remember { mutableStateOf("") }
+
+    var showBoardMenu by remember { mutableStateOf(false) }
+    var showDeleteBoardConfirm by remember { mutableStateOf(false) }
+
+    var columnIdToRename by remember { mutableStateOf<String?>(null) }
+    var renameColumnTitle by remember { mutableStateOf("") }
+    var columnIdToDelete by remember { mutableStateOf<String?>(null) }
+
+    var showRenameBoardDialog by remember { mutableStateOf(false) }
+    var renameBoardTitle by remember { mutableStateOf("") }
 
     // Drop Indicator ve UI stabilitesi iÃ§in preview hesaplamasÄ±nÄ± kaldÄ±rdÄ±k.
-    // Drag sÄ±rasÄ±nda elemanlarÄ±n fiziksel olarak yer deÄŸiÅŸtirmesi sonsuz dÃ¶ngÃ¼ye (oscillation) ve
-    // emÃ¼latÃ¶rde aÅŸÄ±rÄ± yavaÅŸlamaya sebep oluyordu. ArtÄ±k sadece hedef Ã§izgisi (Drop Indicator) gÃ¶stereceÄŸiz.
+    // Drag sÃ„Â±rasÃ„Â±nda elemanlarÃ„Â±n fiziksel olarak yer deÃ„Å¸iÃ…Å¸tirmesi sonsuz dÃƒÂ¶ngÃƒÂ¼ye (oscillation) ve
+    // emÃƒÂ¼latÃƒÂ¶rde aÃ…Å¸Ã„Â±rÃ„Â± yavaÃ…Å¸lamaya sebep oluyordu. ArtÃ„Â±k sadece hedef ÃƒÂ§izgisi (Drop Indicator) gÃƒÂ¶stereceÃ„Å¸iz.
 
     // Modal Dialogs
     if (showAddColumnDialog) {
         AlertDialog(
             onDismissRequest = { showAddColumnDialog = false },
-            title = { Text("Yeni SÃ¼tun Ekle") },
+            title = { Text("Yeni SÃƒÂ¼tun Ekle") },
             text = {
                 OutlinedTextField(
                     value = columnTitleInput,
                     onValueChange = { columnTitleInput = it },
-                    label = { Text("SÃ¼tun BaÅŸlÄ±ÄŸÄ±") },
+                    label = { Text("SÃƒÂ¼tun BaÃ…Å¸lÃ„Â±Ã„Å¸Ã„Â±") },
                     singleLine = true
                 )
             },
@@ -110,7 +129,7 @@ fun BoardDetailScreen(
                 }) { Text("Ekle") }
             },
             dismissButton = {
-                TextButton(onClick = { showAddColumnDialog = false }) { Text("Ä°İptal") }
+                TextButton(onClick = { showAddColumnDialog = false }) { Text("Ã„Â°Ä°ptal") }
             }
         )
     }
@@ -118,12 +137,12 @@ fun BoardDetailScreen(
     if (columnIdForNewTask != null) {
         AlertDialog(
             onDismissRequest = { columnIdForNewTask = null },
-            title = { Text("Yeni GÃ¶rev Ekle") },
+            title = { Text("Yeni GÃƒÂ¶rev Ekle") },
             text = {
                 OutlinedTextField(
                     value = taskTitleInput,
                     onValueChange = { taskTitleInput = it },
-                    label = { Text("GÃ¶rev BaÅŸlÄ±ÄŸÄ±") },
+                    label = { Text("GÃƒÂ¶rev BaÃ…Å¸lÃ„Â±Ã„Å¸Ã„Â±") },
                     singleLine = true
                 )
             },
@@ -137,58 +156,139 @@ fun BoardDetailScreen(
                 }) { Text("Ekle") }
             },
             dismissButton = {
-                TextButton(onClick = { columnIdForNewTask = null }) { Text("Ä°İptal") }
+                TextButton(onClick = { columnIdForNewTask = null }) { Text("Ã„Â°Ä°ptal") }
             }
         )
     }
 
     if (selectedTask != null) {
         val task = selectedTask!!
-        AlertDialog(
+        TaskDetailSheet(
+            task = task,
+            boardLabels = uiState.boardLabels,
+            members = uiState.members,
+            canEdit = uiState.currentUserRole?.canEditColumnsAndTasks == true,
             onDismissRequest = { selectedTask = null },
-            title = { Text("GÃ¶rev DetaylarÄ±") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = editTaskTitle,
-                        onValueChange = { editTaskTitle = it },
-                        label = { Text("BaÅŸlÄ±k") },
-                        singleLine = true
-                    )
-                    OutlinedTextField(
-                        value = editTaskDesc,
-                        onValueChange = { editTaskDesc = it },
-                        label = { Text("AÃ§Ä±klama") },
-                        maxLines = 3
-                    )
-                }
+            onSave = { title, desc, dueDate, tags, assignee, onSaveError ->
+                viewModel.updateTaskDetails(
+                    taskId = task.id,
+                    columnId = task.columnId,
+                    newTitle = title,
+                    newDescription = desc,
+                    dueDate = dueDate,
+                    tags = tags,
+                    assignee = assignee,
+                    onSuccess = { selectedTask = null },
+                    onError = { onSaveError() }
+                )
             },
-            confirmButton = {
-                if (uiState.currentUserRole?.canEditColumnsAndTasks == true) {
-                    TextButton(onClick = {
-                        viewModel.updateTask(task.id, task.columnId, editTaskTitle, editTaskDesc)
-                        selectedTask = null
-                    }) { Text("Kaydet") }
-                }
-            },
-            dismissButton = {
-                Row {
-                    if (uiState.currentUserRole?.canEditColumnsAndTasks == true) {
-                        TextButton(
-                            onClick = {
-                                viewModel.deleteTask(task.id, task.columnId)
-                                selectedTask = null
-                            },
-                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                        ) { Text("Sil") }
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
-                    TextButton(onClick = { selectedTask = null }) { Text("İİptal") }
-                }
+            onDelete = {
+                viewModel.deleteTask(task.id, task.columnId)
+                selectedTask = null
             }
         )
     }
 
+    if (showDeleteBoardConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteBoardConfirm = false },
+            title = { Text("Panoyu Sil") },
+            text = { Text("Bu pano; sÃ¼tunlarÄ±, gÃ¶revleri, Ã¼yelikleri, etkinlik kayÄ±tlarÄ± ve gÃ¶revlere baÄŸlÄ± GÃ¼nÃ¼m planlarÄ±yla birlikte kalÄ±cÄ± olarak silinecek.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteBoard()
+                        showDeleteBoardConfirm = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) { Text("Sil") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteBoardConfirm = false }) { Text("Ä°ptal") }
+            }
+        )
+    }
+
+    if (showRenameBoardDialog) {
+        AlertDialog(
+            onDismissRequest = { showRenameBoardDialog = false },
+            title = { Text("Pano AdÄ±nÄ± DeÄŸiÅŸtir") },
+            text = {
+                OutlinedTextField(
+                    value = renameBoardTitle,
+                    onValueChange = { renameBoardTitle = it },
+                    label = { Text("Yeni BaÅŸlÄ±k") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (renameBoardTitle.isNotBlank()) {
+                        viewModel.renameBoard(renameBoardTitle)
+                        showRenameBoardDialog = false
+                        renameBoardTitle = ""
+                    }
+                }) { Text("Kaydet") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRenameBoardDialog = false }) { Text("Ä°ptal") }
+            }
+        )
+    }
+
+    if (columnIdToRename != null) {
+        AlertDialog(
+            onDismissRequest = { columnIdToRename = null },
+            title = { Text("SÃ¼tun AdÄ±nÄ± DÃ¼zenle") },
+            text = {
+                OutlinedTextField(
+                    value = renameColumnTitle,
+                    onValueChange = { renameColumnTitle = it },
+                    label = { Text("Yeni BaÅŸlÄ±k") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (renameColumnTitle.isNotBlank()) {
+                        viewModel.renameColumn(columnIdToRename!!, renameColumnTitle)
+                        columnIdToRename = null
+                        renameColumnTitle = ""
+                    }
+                }) { Text("Kaydet") }
+            },
+            dismissButton = {
+                TextButton(onClick = { columnIdToRename = null }) { Text("Ä°ptal") }
+            }
+        )
+    }
+
+    if (columnIdToDelete != null) {
+        val taskCount = uiState.tasksByColumn[columnIdToDelete]?.size ?: 0
+        AlertDialog(
+            onDismissRequest = { columnIdToDelete = null },
+            title = { Text("SÃ¼tunu Sil") },
+            text = {
+                if (taskCount > 0) {
+                    Text("Bu sÃ¼tunda $taskCount gÃ¶rev var. SÃ¼tun, iÃ§indeki gÃ¶revler ve bu gÃ¶revlere ait GÃ¼nÃ¼m planlarÄ± kalÄ±cÄ± olarak silinecek.")
+                } else {
+                    Text("Bu sÃ¼tun kalÄ±cÄ± olarak silinsin mi?")
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteColumn(columnIdToDelete!!)
+                        columnIdToDelete = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) { Text("Sil") }
+            },
+            dismissButton = {
+                TextButton(onClick = { columnIdToDelete = null }) { Text("Ä°ptal") }
+            }
+        )
+    }
     if (uiState.showMembersSheet) {
         BoardMembersBottomSheet(
             members = uiState.members,
@@ -232,7 +332,7 @@ fun BoardDetailScreen(
             containerColor = Color.Transparent,
             topBar = {
                 TopAppBar(
-                    title = { Text("Pano DetayÄ±", style = NotsenTheme.typography.headlineMedium) },
+                    title = { Text(viewModel.boardTitle, style = NotsenTheme.typography.headlineMedium) },
                     navigationIcon = {
                         IconButton(onClick = onNavigateBack) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri", tint = NotsenTheme.colors.textPrimary)
@@ -244,6 +344,44 @@ fun BoardDetailScreen(
                         }
                         IconButton(onClick = { viewModel.toggleActivityLogsSheet(true) }) {
                             Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Aktivite", tint = NotsenTheme.colors.textPrimary)
+                        }
+                        if (uiState.currentUserRole?.canRenameBoard == true || uiState.currentUserRole?.canDeleteBoard == true) {
+                            Box {
+                                IconButton(onClick = { showBoardMenu = true }) {
+                                    Icon(Icons.Default.MoreVert, contentDescription = "Pano SeÃ§enekleri", tint = NotsenTheme.colors.textPrimary)
+                                }
+                                DropdownMenu(
+                                    expanded = showBoardMenu,
+                                    onDismissRequest = { showBoardMenu = false },
+                                    modifier = Modifier.background(NotsenTheme.colors.bgSecondary)
+                                ) {
+                                    if (uiState.currentUserRole?.canRenameBoard == true) {
+                                        DropdownMenuItem(
+                                            text = { Text("Pano AdÄ±nÄ± DeÄŸiÅŸtir", color = NotsenTheme.colors.textPrimary) },
+                                            onClick = {
+                                                showBoardMenu = false
+                                                renameBoardTitle = viewModel.boardTitle
+                                                showRenameBoardDialog = true
+                                            },
+                                            leadingIcon = {
+                                                Icon(Icons.Default.Edit, contentDescription = null, tint = NotsenTheme.colors.textPrimary)
+                                            }
+                                        )
+                                    }
+                                    if (uiState.currentUserRole?.canDeleteBoard == true) {
+                                        DropdownMenuItem(
+                                            text = { Text("Panoyu Sil", color = MaterialTheme.colorScheme.error) },
+                                            onClick = {
+                                                showBoardMenu = false
+                                                showDeleteBoardConfirm = true
+                                            },
+                                            leadingIcon = {
+                                                Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                                            }
+                                        )
+                                    }
+                                }
+                            }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -288,9 +426,12 @@ fun BoardDetailScreen(
                                     onAddTaskClick = { columnIdForNewTask = column.id },
                                     onTaskClick = { task ->
                                         selectedTask = task
-                                        editTaskTitle = task.title
-                                        editTaskDesc = task.description
-                                    }
+                                    },
+                                    onRenameColumnClick = {
+                                        renameColumnTitle = column.title
+                                        columnIdToRename = column.id
+                                    },
+                                    onDeleteColumnClick = { columnIdToDelete = column.id }
                                 )
                             }
                             if (uiState.currentUserRole?.canEditColumnsAndTasks == true) {
@@ -307,7 +448,7 @@ fun BoardDetailScreen(
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(NotsenTheme.spacing.sm)) {
                                             Icon(Icons.Default.Add, contentDescription = null, tint = NotsenTheme.colors.accentPrimary)
-                                            Text("SÃ¼tun Ekle", style = NotsenTheme.typography.labelLarge, color = NotsenTheme.colors.textPrimary)
+                                            Text("SÃƒÂ¼tun Ekle", style = NotsenTheme.typography.labelLarge, color = NotsenTheme.colors.textPrimary)
                                         }
                                     }
                                 }
@@ -350,10 +491,13 @@ fun ColumnContainer(
     plannedTaskIds: Set<String>,
     currentUserRole: com.notsen.core.model.PermissionRole?,
     onAddTaskClick: () -> Unit,
-    onTaskClick: (Task) -> Unit
+    onTaskClick: (Task) -> Unit,
+    onRenameColumnClick: () -> Unit,
+    onDeleteColumnClick: () -> Unit
 ) {
     val dragDropState = LocalBoardDragDropState.current
     val verticalScrollState = rememberLazyListState()
+    var showColumnMenu by remember { mutableStateOf(false) }
 
     // Vertical Auto-Scroll Loop for this column
     LaunchedEffect(dragDropState.isDragging, dragDropState.verticalScrollVelocity, dragDropState.currentTargetColumnId) {
@@ -383,12 +527,54 @@ fun ColumnContainer(
                     dragDropState.columnBounds[column.id] = coordinates.boundsInRoot()
                 }
         ) {
-            Text(
-                text = column.title,
-                style = NotsenTheme.typography.titleMedium,
-                color = NotsenTheme.colors.textPrimary,
-                modifier = Modifier.padding(bottom = NotsenTheme.spacing.lg, start = NotsenTheme.spacing.xs, top = NotsenTheme.spacing.xs)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = column.title,
+                    style = NotsenTheme.typography.titleMedium,
+                    color = NotsenTheme.colors.textPrimary,
+                    modifier = Modifier.padding(bottom = NotsenTheme.spacing.lg, start = NotsenTheme.spacing.xs, top = NotsenTheme.spacing.xs).weight(1f)
+                )
+                if (currentUserRole?.canEditColumnsAndTasks == true) {
+                    Box {
+                        IconButton(
+                            onClick = { showColumnMenu = true },
+                            enabled = !dragDropState.isDragging
+                        ) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "SÃ¼tun SeÃ§enekleri", tint = if (dragDropState.isDragging) NotsenTheme.colors.textSecondary.copy(alpha = 0.5f) else NotsenTheme.colors.textSecondary)
+                        }
+                        DropdownMenu(
+                            expanded = showColumnMenu,
+                            onDismissRequest = { showColumnMenu = false },
+                            modifier = Modifier.background(NotsenTheme.colors.bgSecondary)
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Yeniden AdlandÄ±r", color = NotsenTheme.colors.textPrimary) },
+                                onClick = {
+                                    showColumnMenu = false
+                                    onRenameColumnClick()
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Edit, contentDescription = null, tint = NotsenTheme.colors.textPrimary)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("SÃ¼tunu Sil", color = MaterialTheme.colorScheme.error) },
+                                onClick = {
+                                    showColumnMenu = false
+                                    onDeleteColumnClick()
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
 
             LazyColumn(
                 state = verticalScrollState,
@@ -400,7 +586,7 @@ fun ColumnContainer(
                     val isTargetHere = dragDropState.isDragging && dragDropState.currentTargetColumnId == column.id && dragDropState.currentTargetIndex == tasks.indexOf(task)
 
                     Column {
-                        // Drop Indicator (BÄ±rakÄ±lacak hedef Ã§izgisi)
+                        // Drop Indicator (BÃ„Â±rakÃ„Â±lacak hedef ÃƒÂ§izgisi)
                         if (isTargetHere && !isPlaceholder) {
                             Box(
                                 modifier = Modifier
@@ -443,7 +629,7 @@ fun ColumnContainer(
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("GÃ¶rev Ekle", style = NotsenTheme.typography.labelMedium)
+                                Text("GÃƒÂ¶rev Ekle", style = NotsenTheme.typography.labelMedium)
                             }
                         }
                     }
@@ -503,7 +689,7 @@ fun TaskCard(task: Task, isGhost: Boolean = false, isOverlay: Boolean = false, i
                 if (isPlanned) {
                     Icon(
                         imageVector = Icons.Default.DateRange,
-                        contentDescription = "Günüm'de",
+                        contentDescription = "GÃ¼nÃ¼m'de",
                         tint = NotsenTheme.colors.accentPrimary,
                         modifier = Modifier.size(16.dp).padding(start = 4.dp)
                     )

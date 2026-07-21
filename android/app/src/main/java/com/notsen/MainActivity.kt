@@ -25,6 +25,7 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.handleDeeplinks
 import io.github.jan.supabase.auth.status.SessionStatus
+import com.notsen.core.network.SessionCoordinator
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -34,6 +35,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var supabase: SupabaseClient
+
+    @Inject
+    lateinit var sessionCoordinator: SessionCoordinator
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -56,7 +60,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+        Log.i("NotsenDebug", "NOTSEN_BUILD versionName=${BuildConfig.VERSION_NAME} versionCode=${BuildConfig.VERSION_CODE} buildType=debug")
+
         handleAuthDeepLinkIfPresent(intent)
 
         setContent {
@@ -68,6 +73,18 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val navController = rememberNavController()
                     val sessionStatus by supabase.auth.sessionStatus.collectAsState()
+
+                    LaunchedEffect(Unit) {
+                        sessionCoordinator.sessionExpiredEvent.collect {
+                            val currentRoute = navController.currentDestination?.route
+                            if (currentRoute != "login" && currentRoute != "register") {
+                                navController.navigate("login") {
+                                    popUpTo(navController.graph.id) { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            }
+                        }
+                    }
 
                     LaunchedEffect(sessionStatus) {
                         val currentRoute = navController.currentDestination?.route

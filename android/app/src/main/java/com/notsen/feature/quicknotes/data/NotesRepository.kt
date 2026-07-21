@@ -11,10 +11,12 @@ import java.util.UUID
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.channels.BufferOverflow
+import com.notsen.core.network.SessionCoordinator
 import javax.inject.Inject
 
 class NotesRepository @Inject constructor(
-    private val supabaseClient: SupabaseClient
+    private val supabaseClient: SupabaseClient,
+    private val sessionCoordinator: SessionCoordinator
 ) {
     private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     val refreshTrigger = _refreshTrigger.asSharedFlow()
@@ -24,7 +26,7 @@ class NotesRepository @Inject constructor(
     }
     private val table = supabaseClient.postgrest["notes"]
 
-    suspend fun getNotes(limit: Long = 1000, offset: Long = 0): List<Note> = withContext(Dispatchers.IO) {
+    suspend fun getNotes(limit: Long = 1000, offset: Long = 0): List<Note> = sessionCoordinator.safeRequest { withContext(Dispatchers.IO) {
         table.select {
             filter {
                 // PostgREST "is.null" equivalent: eq("deleted_at", null) usually works,
@@ -35,9 +37,9 @@ class NotesRepository @Inject constructor(
             order("created_at", order = Order.DESCENDING)
             range(offset, offset + limit - 1)
         }.decodeList<Note>().filter { it.deletedAt == null }
-    }
+    } }
 
-    suspend fun addNote(title: String, content: String, tags: List<String>): Note = withContext(Dispatchers.IO) {
+    suspend fun addNote(title: String, content: String, tags: List<String>): Note = sessionCoordinator.safeRequest { withContext(Dispatchers.IO) {
         val user = supabaseClient.auth.currentUserOrNull()
         val userId = user?.id ?: ""
         val newNote = Note(
@@ -57,9 +59,9 @@ class NotesRepository @Inject constructor(
         _refreshTrigger.tryEmit(Unit)
 
         insertedNote
-    }
+    } }
 
-    suspend fun updateNote(id: String, title: String, content: String, tags: List<String>): Note = withContext(Dispatchers.IO) {
+    suspend fun updateNote(id: String, title: String, content: String, tags: List<String>): Note = sessionCoordinator.safeRequest { withContext(Dispatchers.IO) {
         // We only update the relevant fields. Server trigger will handle updated_at.
         table.update(
             {
@@ -71,31 +73,31 @@ class NotesRepository @Inject constructor(
             filter { eq("id", id) }
             select()
         }.decodeSingle<Note>()
-    }
+    } }
 
-    suspend fun togglePinStatus(id: String, isPinned: Boolean): Note = withContext(Dispatchers.IO) {
+    suspend fun togglePinStatus(id: String, isPinned: Boolean): Note = sessionCoordinator.safeRequest { withContext(Dispatchers.IO) {
         table.update({ set("is_pinned", isPinned) }) {
             filter { eq("id", id) }
             select()
         }.decodeSingle<Note>()
-    }
+    } }
 
-    suspend fun toggleArchiveStatus(id: String, isArchived: Boolean): Note = withContext(Dispatchers.IO) {
+    suspend fun toggleArchiveStatus(id: String, isArchived: Boolean): Note = sessionCoordinator.safeRequest { withContext(Dispatchers.IO) {
         table.update({ set("is_archived", isArchived) }) {
             filter { eq("id", id) }
             select()
         }.decodeSingle<Note>()
-    }
+    } }
 
-    suspend fun deleteNote(id: String) = withContext(Dispatchers.IO) {
+    suspend fun deleteNote(id: String) = sessionCoordinator.safeRequest { withContext(Dispatchers.IO) {
         table.update({ set("deleted_at", java.time.Instant.now().toString()) }) {
             filter { eq("id", id) }
         }
-    }
+    } }
 
-    suspend fun undoDeleteNote(id: String) = withContext(Dispatchers.IO) {
+    suspend fun undoDeleteNote(id: String) = sessionCoordinator.safeRequest { withContext(Dispatchers.IO) {
         table.update({ set("deleted_at", null as String?) }) {
             filter { eq("id", id) }
         }
-    }
+    } }
 }

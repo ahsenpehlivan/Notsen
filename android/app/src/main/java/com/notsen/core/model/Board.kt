@@ -5,19 +5,12 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
 
 @Serializable
-data class BoardLabel(
-    val id: String = "",
-    val name: String = "",
-    val color: String = ""
-)
-
-@Serializable
 data class Board(
     val id: String = "",
     val title: String = "",
     @SerialName("user_id")
     val userId: String? = null,
-    val labels: JsonArray? = null,
+    val labels: List<String>? = emptyList(),
     val position: Int? = 0
 )
 

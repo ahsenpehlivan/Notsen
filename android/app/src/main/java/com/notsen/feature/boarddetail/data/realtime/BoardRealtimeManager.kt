@@ -18,9 +18,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
+import com.notsen.core.network.SessionCoordinator
 
 class BoardRealtimeManager @Inject constructor(
-    private val supabaseClient: SupabaseClient
+    private val supabaseClient: SupabaseClient,
+    private val sessionCoordinator: SessionCoordinator
 ) {
     private val mutex = Mutex()
     private var activeChannel: RealtimeChannel? = null
@@ -58,6 +60,12 @@ class BoardRealtimeManager @Inject constructor(
                 activeChannel = channel
 
                 subscriptionJob = scope.launch {
+                    launch {
+                        sessionCoordinator.sessionExpiredEvent.collect {
+                            unsubscribe()
+                        }
+                    }
+
                     // Boards
                     channel.postgresChangeFlow<PostgresAction>("public") {
                         table = "boards"

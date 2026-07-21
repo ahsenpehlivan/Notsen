@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 
+import com.notsen.core.network.SessionCoordinator
 import javax.inject.Inject
 
 @Serializable
@@ -34,16 +35,19 @@ private data class RemoveMemberParams(
 )
 
 class BoardMemberRepository @Inject constructor(
-    private val supabaseClient: SupabaseClient
+    private val supabaseClient: SupabaseClient,
+    private val sessionCoordinator: SessionCoordinator
 ) {
     suspend fun getMembers(boardId: String): Result<List<BoardMember>> = withContext(Dispatchers.IO) {
         try {
-            val members = supabaseClient.postgrest["board_members"]
-                .select {
-                    filter {
-                        eq("board_id", boardId)
-                    }
-                }.decodeList<BoardMember>()
+            val members = sessionCoordinator.safeRequest {
+                supabaseClient.postgrest["board_members"]
+                    .select {
+                        filter {
+                            eq("board_id", boardId)
+                        }
+                    }.decodeList<BoardMember>()
+            }
             Result.success(members)
         } catch (e: Exception) {
             Result.failure(e)
@@ -58,14 +62,16 @@ class BoardMemberRepository @Inject constructor(
                 else -> throw IllegalArgumentException("Owner rolü atanamaz")
             }
 
-            supabaseClient.postgrest.rpc(
-                function = "invite_user_to_board",
-                parameters = InviteUserParams(
-                    p_board_id = boardId,
-                    p_email = email,
-                    p_role = roleStr
+            sessionCoordinator.safeRequest {
+                supabaseClient.postgrest.rpc(
+                    function = "invite_user_to_board",
+                    parameters = InviteUserParams(
+                        p_board_id = boardId,
+                        p_email = email,
+                        p_role = roleStr
+                    )
                 )
-            )
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -84,13 +90,15 @@ class BoardMemberRepository @Inject constructor(
             Log.d("BoardMemberRepository", "MEMBER_ROLE_UPDATE_CURRENT_USER_ROLE=${currentUserRole?.name}")
             Log.d("BoardMemberRepository", "MEMBER_ROLE_UPDATE_RPC_START")
 
-            supabaseClient.postgrest.rpc(
-                function = "update_board_member_role",
-                parameters = UpdateRoleParams(
-                    p_member_id = memberId,
-                    p_role = roleStr
+            sessionCoordinator.safeRequest {
+                supabaseClient.postgrest.rpc(
+                    function = "update_board_member_role",
+                    parameters = UpdateRoleParams(
+                        p_member_id = memberId,
+                        p_role = roleStr
+                    )
                 )
-            )
+            }
             
             Log.d("BoardMemberRepository", "MEMBER_ROLE_UPDATE_RPC_SUCCESS")
             Result.success(Unit)
@@ -102,12 +110,14 @@ class BoardMemberRepository @Inject constructor(
 
     suspend fun removeMember(memberId: String): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            supabaseClient.postgrest.rpc(
-                function = "remove_board_member",
-                parameters = RemoveMemberParams(
-                    p_member_id = memberId
+            sessionCoordinator.safeRequest {
+                supabaseClient.postgrest.rpc(
+                    function = "remove_board_member",
+                    parameters = RemoveMemberParams(
+                        p_member_id = memberId
+                    )
                 )
-            )
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

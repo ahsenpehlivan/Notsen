@@ -22,11 +22,15 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 data class BoardDetailUiState(
     val isLoading: Boolean = false,
@@ -37,6 +41,7 @@ data class BoardDetailUiState(
     val plannedTaskIds: Set<String> = emptySet(),
     val members: List<BoardMember> = emptyList(),
     val activityLogs: List<ActivityLog> = emptyList(),
+    val boardLabels: List<String> = emptyList(),
     val currentUserRole: PermissionRole? = null,
     val showMembersSheet: Boolean = false,
     val showActivityLogsSheet: Boolean = false,
@@ -57,13 +62,31 @@ class BoardDetailViewModel @Inject constructor(
 
     private val boardId: String = checkNotNull(savedStateHandle["boardId"])
     private var currentBoard: Board? = null
+    val boardTitle: String get() = currentBoard?.title ?: "Pano"
 
     private val _uiState = MutableStateFlow(BoardDetailUiState())
     val uiState: StateFlow<BoardDetailUiState> = _uiState.asStateFlow()
 
+    private val _navigationEvent = Channel<NavigationAction>(Channel.BUFFERED)
+    val navigationEvent = _navigationEvent.receiveAsFlow()
+
     private var contentDebounceJob: Job? = null
     private var boardDirtyAfterDrag = false
     private var isDragging = false
+
+    private val coordinator = BoardOperationCoordinator(
+        boardId = boardId,
+        getState = { _uiState.value },
+        updateState = { updateFn -> _uiState.update(updateFn) },
+        emitNavigation = { action -> _navigationEvent.send(action) },
+        deleteBoardApi = { id -> repository.deleteBoard(id) },
+        deleteColumnApi = { id -> repository.deleteColumn(id) },
+        updateColumnApi = { id, title -> repository.updateColumn(id, title) },
+        updateBoardApi = { id, title -> repository.updateBoard(id, title) },
+        logActivityApi = { bId, action, type, eId, eTitle, meta ->
+            activityLogRepository.logActivity(bId, action, type, eId, eTitle, meta)
+        }
+    )
 
     init {
         // Collect Realtime flows
@@ -146,7 +169,8 @@ class BoardDetailViewModel @Inject constructor(
             it.copy(
                 columns = columns,
                 tasksByColumn = tasksGrouped,
-                plannedTaskIds = plannedIds
+                plannedTaskIds = plannedIds,
+                boardLabels = currentBoard?.labels ?: emptyList()
             )
         }
     }
@@ -262,15 +286,32 @@ class BoardDetailViewModel @Inject constructor(
         }
     }
 
-    fun updateTask(taskId: String, columnId: String, newTitle: String, newDescription: String) {
-        if (newTitle.isBlank()) return
-        if (_uiState.value.currentUserRole?.canEditColumnsAndTasks != true) return
+    fun updateTaskDetails(
+        taskId: String,
+        columnId: String,
+        newTitle: String,
+        newDescription: String,
+        dueDate: String?,
+        tags: List<String>?,
+        assignee: String?,
+        onSuccess: () -> Unit = {},
+        onError: (String) -> Unit = {}
+    ) {
+        if (newTitle.isBlank()) {
+            onError("Görev başlığı boş olamaz.")
+            return
+        }
+        if (_uiState.value.currentUserRole?.canEditColumnsAndTasks != true) {
+            onError("Bu işlem için yetkiniz yok.")
+            return
+        }
 
         viewModelScope.launch {
             try {
-                repository.updateTask(taskId, newTitle, newDescription)
-                // Realtime sync edecek
+                repository.updateTaskDetails(taskId, newTitle, newDescription, dueDate, tags, assignee)
+                onSuccess()
             } catch (e: Exception) {
+                onError(e.message ?: "Bilinmeyen hata")
                 _uiState.update { it.copy(error = e.message) }
             }
         }
@@ -285,6 +326,31 @@ class BoardDetailViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = e.message) }
             }
+        }
+    }
+
+    fun deleteBoard() {
+        viewModelScope.launch {
+            coordinator.deleteBoard()
+        }
+    }
+
+    fun deleteColumn(columnId: String) {
+        viewModelScope.launch {
+            coordinator.deleteColumn(columnId)
+        }
+    }
+
+    fun renameColumn(columnId: String, newTitle: String) {
+        viewModelScope.launch {
+            coordinator.renameColumn(columnId, newTitle)
+        }
+    }
+
+    fun renameBoard(newTitle: String) {
+        val oldTitle = currentBoard?.title ?: return
+        viewModelScope.launch {
+            coordinator.renameBoard(newTitle, oldTitle)
         }
     }
 
