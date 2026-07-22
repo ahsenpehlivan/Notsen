@@ -1,4 +1,4 @@
-﻿package com.notsen.feature.boarddetail.ui
+package com.notsen.feature.boarddetail.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -14,6 +14,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.List
@@ -162,9 +164,10 @@ fun BoardDetailScreen(
     }
 
     if (selectedTask != null) {
-        val task = selectedTask!!
+        val task = uiState.tasksByColumn.values.flatten().find { it.id == selectedTask!!.id } ?: selectedTask!!
         TaskDetailSheet(
             task = task,
+            error = uiState.error,
             boardLabels = uiState.boardLabels,
             members = uiState.members,
             canEdit = uiState.currentUserRole?.canEditColumnsAndTasks == true,
@@ -185,6 +188,9 @@ fun BoardDetailScreen(
             onDelete = {
                 viewModel.deleteTask(task.id, task.columnId)
                 selectedTask = null
+            },
+            onChecklistMutation = { mutation ->
+                viewModel.updateTaskChecklist(task.id, mutation)
             }
         )
     }
@@ -705,25 +711,48 @@ fun TaskCard(task: Task, isGhost: Boolean = false, isOverlay: Boolean = false, i
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            if (task.tags?.isNotEmpty() == true || task.dueDate != null) {
+            if (task.tags?.isNotEmpty() == true || task.dueDate != null || !task.checklist.isNullOrEmpty()) {
                 Spacer(modifier = Modifier.height(NotsenTheme.spacing.md))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (task.tags?.isNotEmpty() == true) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(NotsenTheme.spacing.xs)) {
-                            task.tags.take(3).forEach { tag ->
-                                NotsenTagChip(
-                                    text = tag,
-                                    backgroundColor = NotsenTheme.colors.accentSubtle,
-                                    textColor = NotsenTheme.colors.accentPrimary
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(NotsenTheme.spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (!task.checklist.isNullOrEmpty()) {
+                            val (done, total) = ChecklistUiHelpers.calculateChecklistProgress(task.checklist)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Checklist",
+                                    tint = NotsenTheme.colors.textSecondary,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = "$done/$total",
+                                    style = NotsenTheme.typography.labelSmall,
+                                    color = NotsenTheme.colors.textSecondary
                                 )
                             }
                         }
-                    } else {
-                        Spacer(modifier = Modifier.width(1.dp))
+
+                        if (task.tags?.isNotEmpty() == true) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(NotsenTheme.spacing.xs)) {
+                                task.tags.take(3).forEach { tag ->
+                                    NotsenTagChip(
+                                        text = tag,
+                                        backgroundColor = NotsenTheme.colors.accentSubtle,
+                                        textColor = NotsenTheme.colors.accentPrimary
+                                    )
+                                }
+                            }
+                        }
                     }
 
                     if (task.dueDate != null) {

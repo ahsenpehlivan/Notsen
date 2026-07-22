@@ -320,6 +320,12 @@ class BoardDetailViewModel @Inject constructor(
         }
     }
 
+    fun updateTaskChecklist(taskId: String, mutation: com.notsen.feature.boarddetail.domain.ChecklistMutation) {
+        viewModelScope.launch {
+            coordinator.updateTaskChecklist(taskId, mutation)
+        }
+    }
+
     fun deleteTask(taskId: String, columnId: String) {
         if (_uiState.value.currentUserRole?.canEditColumnsAndTasks != true) return
 

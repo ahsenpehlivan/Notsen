@@ -30,9 +30,11 @@ fun TaskDetailSheet(
     boardLabels: List<String>,
     members: List<BoardMember>,
     canEdit: Boolean,
+    error: String?,
     onDismissRequest: () -> Unit,
     onSave: (title: String, desc: String, dueDate: String?, tags: List<String>, assignee: String?, onError: () -> Unit) -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onChecklistMutation: (com.notsen.feature.boarddetail.domain.ChecklistMutation) -> Unit
 ) {
     var editTitle by remember { mutableStateOf(task.title) }
     var editDesc by remember { mutableStateOf(task.description) }
@@ -185,6 +187,24 @@ fun TaskDetailSheet(
                     .heightIn(min = 120.dp),
                 shape = NotsenTheme.shapes.md
             )
+
+            // Checklist Section
+            ChecklistSection(
+                checklist = task.checklist,
+                canEdit = canEdit,
+                isLoading = isLoading,
+                onMutation = onChecklistMutation,
+                modifier = Modifier.padding(vertical = NotsenTheme.spacing.md)
+            )
+
+            if (error != null) {
+                Text(
+                    text = ChecklistUiHelpers.getChecklistValidationMessage(error) ?: error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = NotsenTheme.typography.bodySmall,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
