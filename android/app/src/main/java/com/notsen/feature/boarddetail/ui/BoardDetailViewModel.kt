@@ -85,6 +85,9 @@ class BoardDetailViewModel @Inject constructor(
         updateBoardApi = { id, title -> repository.updateBoard(id, title) },
         logActivityApi = { bId, action, type, eId, eTitle, meta ->
             activityLogRepository.logActivity(bId, action, type, eId, eTitle, meta)
+        },
+        updateTaskChecklistApi = { bId, tId, checklist ->
+            repository.updateTaskChecklist(bId, tId, checklist)
         }
     )
 

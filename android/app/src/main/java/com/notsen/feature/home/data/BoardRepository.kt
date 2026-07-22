@@ -147,6 +147,22 @@ class BoardRepository @Inject constructor(
         }.decodeSingle<com.notsen.core.model.Task>()
     } }
 
+    suspend fun updateTaskChecklist(
+        boardId: String,
+        taskId: String,
+        checklist: List<com.notsen.core.model.ChecklistItem>
+    ): com.notsen.core.model.Task = sessionCoordinator.safeRequest { withContext(Dispatchers.IO) {
+        supabaseClient.postgrest["tasks"].update({
+            set("checklist", checklist)
+        }) {
+            filter {
+                eq("id", taskId)
+                eq("board_id", boardId)
+            }
+            select()
+        }.decodeSingle<com.notsen.core.model.Task>()
+    } }
+
     suspend fun deleteTask(taskId: String) = sessionCoordinator.safeRequest { withContext(Dispatchers.IO) {
         supabaseClient.postgrest["tasks"].delete {
             filter { eq("id", taskId) }

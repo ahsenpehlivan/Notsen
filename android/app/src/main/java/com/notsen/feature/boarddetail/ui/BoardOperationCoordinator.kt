@@ -13,7 +13,8 @@ class BoardOperationCoordinator(
     private val deleteColumnApi: suspend (String) -> Unit,
     private val updateColumnApi: suspend (String, String) -> Unit,
     private val updateBoardApi: suspend (String, String) -> Unit,
-    private val logActivityApi: suspend (String, String, String, String?, String?, JsonObject?) -> Unit
+    private val logActivityApi: suspend (String, String, String, String?, String?, JsonObject?) -> Unit,
+    private val updateTaskChecklistApi: suspend (String, String, List<com.notsen.core.model.ChecklistItem>) -> com.notsen.core.model.Task
 ) {
     suspend fun deleteBoard() {
         if (!BoardActionHelper.canDeleteBoard(getState().currentUserRole)) return
@@ -138,6 +139,40 @@ class BoardOperationCoordinator(
             }
         } catch (e: Exception) {
             updateState { it.copy(error = e.message) }
+        }
+    }
+
+    private val checklistSaveLocks = mutableSetOf<String>()
+
+    suspend fun updateTaskChecklist(taskId: String, mutation: com.notsen.feature.boarddetail.domain.ChecklistMutation) {
+        val state = getState()
+        if (!BoardActionHelper.canEditTask(state.currentUserRole)) return
+
+        if (checklistSaveLocks.contains(taskId)) return
+
+        val task = state.tasksByColumn.values.flatten().find { it.id == taskId } ?: return
+        val currentChecklist = task.checklist ?: emptyList()
+
+        val result = com.notsen.feature.boarddetail.domain.ChecklistReducer.reduce(currentChecklist, mutation)
+        if (result is com.notsen.feature.boarddetail.domain.ChecklistMutationResult.Rejected) return
+
+        val newChecklist = (result as com.notsen.feature.boarddetail.domain.ChecklistMutationResult.Success).items
+
+        try {
+            checklistSaveLocks.add(taskId)
+            val updatedTask = updateTaskChecklistApi(boardId, taskId, newChecklist)
+
+            // Update UI state with new task
+            updateState { s ->
+                val newTasksByColumn = s.tasksByColumn.mapValues { (_, tasks) ->
+                    tasks.map { if (it.id == taskId) updatedTask else it }
+                }
+                s.copy(tasksByColumn = newTasksByColumn)
+            }
+        } catch (e: Exception) {
+            updateState { it.copy(error = e.message) }
+        } finally {
+            checklistSaveLocks.remove(taskId)
         }
     }
 }

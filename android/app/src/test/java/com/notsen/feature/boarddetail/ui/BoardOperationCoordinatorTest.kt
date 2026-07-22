@@ -26,7 +26,7 @@ class BoardOperationCoordinatorTest {
             deleteBoardApi = { /* success */ },
             deleteColumnApi = { },
             updateColumnApi = { _, _ -> },
-            logActivityApi = { _, _, _, _, _, _ -> }
+            logActivityApi = { _, _, _, _, _, _ -> }, updateTaskChecklistApi = { _, _, _ -> com.notsen.core.model.Task() }
         )
 
         coordinator.deleteBoard()
@@ -49,7 +49,7 @@ class BoardOperationCoordinatorTest {
             deleteBoardApi = { throw Exception("API Error") },
             deleteColumnApi = { },
             updateColumnApi = { _, _ -> },
-            logActivityApi = { _, _, _, _, _, _ -> }
+            logActivityApi = { _, _, _, _, _, _ -> }, updateTaskChecklistApi = { _, _, _ -> com.notsen.core.model.Task() }
         )
 
         coordinator.deleteBoard()
@@ -72,7 +72,7 @@ class BoardOperationCoordinatorTest {
             deleteBoardApi = { apiCalled = true },
             deleteColumnApi = { },
             updateColumnApi = { _, _ -> },
-            logActivityApi = { _, _, _, _, _, _ -> }
+            logActivityApi = { _, _, _, _, _, _ -> }, updateTaskChecklistApi = { _, _, _ -> com.notsen.core.model.Task() }
         )
 
         coordinator.deleteBoard()
@@ -101,7 +101,8 @@ class BoardOperationCoordinatorTest {
             updateColumnApi = { _, _ -> },
             logActivityApi = { bId, action, _, eId, _, _ -> 
                 if (action == "column_deleted" && eId == "c1") logCalled = true
-            }
+            },
+            updateTaskChecklistApi = { _, _, _ -> com.notsen.core.model.Task() }
         )
 
         coordinator.deleteColumn("c1")
@@ -129,7 +130,8 @@ class BoardOperationCoordinatorTest {
             deleteBoardApi = { },
             deleteColumnApi = { throw Exception("API Error") },
             updateColumnApi = { _, _ -> },
-            logActivityApi = { _, _, _, _, _, _ -> logCalled = true }
+            logActivityApi = { _, _, _, _, _, _ -> logCalled = true },
+            updateTaskChecklistApi = { _, _, _ -> com.notsen.core.model.Task() }
         )
 
         coordinator.deleteColumn("c1")
@@ -159,7 +161,8 @@ class BoardOperationCoordinatorTest {
             updateColumnApi = { _, _ -> /* success */ },
             logActivityApi = { _, action, _, _, _, _ -> 
                 if (action == "column_renamed") logCalled = true
-            }
+            },
+            updateTaskChecklistApi = { _, _, _ -> com.notsen.core.model.Task() }
         )
 
         coordinator.renameColumn("c1", "New")
@@ -185,7 +188,7 @@ class BoardOperationCoordinatorTest {
             deleteBoardApi = { },
             deleteColumnApi = { },
             updateColumnApi = { _, _ -> throw Exception("API Error") },
-            logActivityApi = { _, _, _, _, _, _ -> }
+            logActivityApi = { _, _, _, _, _, _ -> }, updateTaskChecklistApi = { _, _, _ -> com.notsen.core.model.Task() }
         )
 
         coordinator.renameColumn("c1", "New")

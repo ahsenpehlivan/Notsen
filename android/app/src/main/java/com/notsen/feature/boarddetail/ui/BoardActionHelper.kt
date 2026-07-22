@@ -18,6 +18,10 @@ object BoardActionHelper {
         return role?.canEditColumnsAndTasks == true
     }
 
+    fun canEditTask(role: PermissionRole?): Boolean {
+        return role?.canEditColumnsAndTasks == true
+    }
+
     fun getDeleteColumnDialogText(columnId: String, tasksByColumn: Map<String, List<Task>>): String {
         val taskCount = tasksByColumn[columnId]?.size ?: 0
         return if (taskCount > 0) {
