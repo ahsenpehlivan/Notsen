@@ -33,7 +33,7 @@ class ChecklistOperationCoordinatorTest {
             deleteColumnApi = {},
             updateColumnApi = { _, _ -> },
             updateBoardApi = { _, _ -> },
-            logActivityApi = { _, _, _, _, _, _ -> },
+            logActivityApi = { _, _, _, _, _, _ -> }, getTaskCommentsApi = { _, _ -> emptyList() }, addTaskCommentApi = { _, _, _ -> com.notsen.core.model.TaskComment() }, deleteTaskCommentApi = { _, _, _ -> },
             updateTaskChecklistApi = { _, _, _ -> 
                 networkCalled = true
                 baseTask 
@@ -60,7 +60,7 @@ class ChecklistOperationCoordinatorTest {
                 deleteColumnApi = {},
                 updateColumnApi = { _, _ -> },
                 updateBoardApi = { _, _ -> },
-                logActivityApi = { _, _, _, _, _, _ -> },
+                logActivityApi = { _, _, _, _, _, _ -> }, getTaskCommentsApi = { _, _ -> emptyList() }, addTaskCommentApi = { _, _, _ -> com.notsen.core.model.TaskComment() }, deleteTaskCommentApi = { _, _, _ -> },
                 updateTaskChecklistApi = { _, _, _ -> 
                     networkCalled = true
                     baseTask 
@@ -84,7 +84,7 @@ class ChecklistOperationCoordinatorTest {
             deleteColumnApi = {},
             updateColumnApi = { _, _ -> },
             updateBoardApi = { _, _ -> },
-            logActivityApi = { _, _, _, _, _, _ -> },
+            logActivityApi = { _, _, _, _, _, _ -> }, getTaskCommentsApi = { _, _ -> emptyList() }, addTaskCommentApi = { _, _, _ -> com.notsen.core.model.TaskComment() }, deleteTaskCommentApi = { _, _, _ -> },
             updateTaskChecklistApi = { _, _, _ -> 
                 networkCalled = true
                 baseTask 
@@ -108,7 +108,7 @@ class ChecklistOperationCoordinatorTest {
             deleteColumnApi = {},
             updateColumnApi = { _, _ -> },
             updateBoardApi = { _, _ -> },
-            logActivityApi = { _, _, _, _, _, _ -> },
+            logActivityApi = { _, _, _, _, _, _ -> }, getTaskCommentsApi = { _, _ -> emptyList() }, addTaskCommentApi = { _, _, _ -> com.notsen.core.model.TaskComment() }, deleteTaskCommentApi = { _, _, _ -> },
             updateTaskChecklistApi = { _, _, list -> 
                 sentList = list
                 baseTask.copy(checklist = list) 
@@ -138,7 +138,7 @@ class ChecklistOperationCoordinatorTest {
             deleteColumnApi = {},
             updateColumnApi = { _, _ -> },
             updateBoardApi = { _, _ -> },
-            logActivityApi = { _, _, _, _, _, _ -> },
+            logActivityApi = { _, _, _, _, _, _ -> }, getTaskCommentsApi = { _, _ -> emptyList() }, addTaskCommentApi = { _, _, _ -> com.notsen.core.model.TaskComment() }, deleteTaskCommentApi = { _, _, _ -> },
             updateTaskChecklistApi = { _, _, _ -> 
                 throw RuntimeException("Network Error") 
             }
@@ -163,7 +163,7 @@ class ChecklistOperationCoordinatorTest {
             deleteColumnApi = {},
             updateColumnApi = { _, _ -> },
             updateBoardApi = { _, _ -> },
-            logActivityApi = { _, _, _, _, _, _ -> },
+            logActivityApi = { _, _, _, _, _, _ -> }, getTaskCommentsApi = { _, _ -> emptyList() }, addTaskCommentApi = { _, _, _ -> com.notsen.core.model.TaskComment() }, deleteTaskCommentApi = { _, _, _ -> },
             updateTaskChecklistApi = { _, _, _ -> 
                 networkCallCount++
                 baseTask
@@ -193,7 +193,7 @@ class ChecklistOperationCoordinatorTest {
             deleteColumnApi = {},
             updateColumnApi = { _, _ -> },
             updateBoardApi = { _, _ -> },
-            logActivityApi = { _, _, _, _, _, _ -> },
+            logActivityApi = { _, _, _, _, _, _ -> }, getTaskCommentsApi = { _, _ -> emptyList() }, addTaskCommentApi = { _, _, _ -> com.notsen.core.model.TaskComment() }, deleteTaskCommentApi = { _, _, _ -> },
             updateTaskChecklistApi = { _, _, _ ->
                 callCount++
                 baseTask.copy(checklist = listOf(ChecklistItem("1", "done", true)))
@@ -234,7 +234,7 @@ class ChecklistOperationCoordinatorTest {
             deleteColumnApi = {},
             updateColumnApi = { _, _ -> },
             updateBoardApi = { _, _ -> },
-            logActivityApi = { _, _, _, _, _, _ -> },
+            logActivityApi = { _, _, _, _, _, _ -> }, getTaskCommentsApi = { _, _ -> emptyList() }, addTaskCommentApi = { _, _, _ -> com.notsen.core.model.TaskComment() }, deleteTaskCommentApi = { _, _, _ -> },
             updateTaskChecklistApi = { _, _, _ ->
                 callCount++
                 if (errorToThrow != null) throw errorToThrow!!

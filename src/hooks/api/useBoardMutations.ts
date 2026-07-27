@@ -372,7 +372,6 @@ export function useTaskMutations() {
       tags?: string[];
       assignee?: string;
       checklist?: Task['checklist'];
-      comments?: Task['comments'];
     }) => {
       const { error } = await supabase
         .from('tasks')
@@ -383,7 +382,6 @@ export function useTaskMutations() {
           tags: input.tags,
           assignee: input.assignee,
           checklist: input.checklist,
-          comments: input.comments ?? [],
         })
         .eq('id', input.id);
       if (error) throw error;
@@ -403,7 +401,6 @@ export function useTaskMutations() {
                 tags: input.tags,
                 assignee: input.assignee,
                 checklist: input.checklist,
-                comments: input.comments,
               }
             : t
         ),

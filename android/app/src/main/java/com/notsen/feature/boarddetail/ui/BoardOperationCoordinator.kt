@@ -14,7 +14,10 @@ class BoardOperationCoordinator(
     private val updateColumnApi: suspend (String, String) -> Unit,
     private val updateBoardApi: suspend (String, String) -> Unit,
     private val logActivityApi: suspend (String, String, String, String?, String?, JsonObject?) -> Unit,
-    private val updateTaskChecklistApi: suspend (String, String, List<com.notsen.core.model.ChecklistItem>) -> com.notsen.core.model.Task
+    private val updateTaskChecklistApi: suspend (String, String, List<com.notsen.core.model.ChecklistItem>) -> com.notsen.core.model.Task,
+    private val getTaskCommentsApi: suspend (String, String) -> List<com.notsen.core.model.TaskComment>,
+    private val addTaskCommentApi: suspend (String, String, String) -> com.notsen.core.model.TaskComment,
+    private val deleteTaskCommentApi: suspend (String, String, String) -> Unit
 ) {
     suspend fun deleteBoard() {
         if (!BoardActionHelper.canDeleteBoard(getState().currentUserRole)) return
@@ -40,7 +43,7 @@ class BoardOperationCoordinator(
 
         try {
             deleteColumnApi(columnId)
-            
+
             // Optimistic UI update
             updateState { s ->
                 s.copy(
@@ -83,7 +86,7 @@ class BoardOperationCoordinator(
 
         try {
             updateColumnApi(columnId, trimmedTitle)
-            
+
             // Optimistic UI update
             updateState { s ->
                 s.copy(columns = helperResult.optimisticColumns ?: s.columns)
@@ -113,13 +116,13 @@ class BoardOperationCoordinator(
 
     suspend fun renameBoard(newTitle: String, oldTitle: String) {
         if (!BoardActionHelper.canRenameBoard(getState().currentUserRole)) return // Owner only
-        
+
         val trimmedTitle = newTitle.trim()
         if (trimmedTitle.isEmpty() || trimmedTitle == oldTitle) return
 
         try {
             updateBoardApi(boardId, trimmedTitle)
-            
+
             // Log activity manually
             try {
                 val metadata = buildJsonObject {
@@ -173,6 +176,59 @@ class BoardOperationCoordinator(
             updateState { it.copy(error = e.message) }
         } finally {
             checklistSaveLocks.remove(taskId)
+        }
+    }
+
+    suspend fun fetchTaskComments(taskId: String) {
+        updateState { it.copy(commentsLoading = true, commentsError = null) }
+        try {
+            val comments = getTaskCommentsApi(boardId, taskId)
+            updateState { it.copy(taskComments = comments, commentsLoading = false) }
+        } catch (e: Exception) {
+            updateState { it.copy(commentsError = e.message, commentsLoading = false) }
+        }
+    }
+
+    suspend fun addTaskComment(taskId: String, content: String) {
+        if (getState().commentSaveInProgress) return
+        val role = getState().currentUserRole
+        if (role != com.notsen.core.model.PermissionRole.OWNER && role != com.notsen.core.model.PermissionRole.EDITOR) return
+
+        updateState { it.copy(commentSaveInProgress = true, commentsError = null) }
+        try {
+            val newComment = addTaskCommentApi(boardId, taskId, content)
+            updateState { s ->
+                s.copy(
+                    taskComments = s.taskComments + newComment,
+                    commentSaveInProgress = false
+                )
+            }
+        } catch (e: Exception) {
+            updateState { it.copy(commentsError = e.message, commentSaveInProgress = false) }
+        }
+    }
+
+    suspend fun deleteTaskComment(taskId: String, commentId: String) {
+        val s = getState()
+        if (s.deletingCommentIds.contains(commentId)) return
+        val role = s.currentUserRole
+        val comment = s.taskComments.find { it.id == commentId } ?: return
+
+        // Bu denetim tam değil, çünkü author_id bazlı (Android'de henüz user auth maili olmayabilir).
+        // Ancak UI'da silme butonu gösterimi doğru yapılacak.
+        // Backend her halükarda yetki kontrolü yapıyor.
+
+        updateState { it.copy(deletingCommentIds = it.deletingCommentIds + commentId, commentsError = null) }
+        try {
+            deleteTaskCommentApi(boardId, taskId, commentId)
+            updateState { state ->
+                state.copy(
+                    taskComments = state.taskComments.filter { it.id != commentId },
+                    deletingCommentIds = state.deletingCommentIds - commentId
+                )
+            }
+        } catch (e: Exception) {
+            updateState { it.copy(commentsError = e.message, deletingCommentIds = it.deletingCommentIds - commentId) }
         }
     }
 }

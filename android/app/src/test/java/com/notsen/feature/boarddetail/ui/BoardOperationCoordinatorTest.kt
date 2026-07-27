@@ -26,7 +26,7 @@ class BoardOperationCoordinatorTest {
             deleteBoardApi = { /* success */ },
             deleteColumnApi = { },
             updateColumnApi = { _, _ -> },
-            logActivityApi = { _, _, _, _, _, _ -> }, updateTaskChecklistApi = { _, _, _ -> com.notsen.core.model.Task() }
+            logActivityApi = { _, _, _, _, _, _ -> }, updateTaskChecklistApi = { _, _, _ -> com.notsen.core.model.Task() }, getTaskCommentsApi = { _, _ -> emptyList() }, addTaskCommentApi = { _, _, _ -> com.notsen.core.model.TaskComment() }, deleteTaskCommentApi = { _, _, _ -> }
         )
 
         coordinator.deleteBoard()
@@ -49,7 +49,7 @@ class BoardOperationCoordinatorTest {
             deleteBoardApi = { throw Exception("API Error") },
             deleteColumnApi = { },
             updateColumnApi = { _, _ -> },
-            logActivityApi = { _, _, _, _, _, _ -> }, updateTaskChecklistApi = { _, _, _ -> com.notsen.core.model.Task() }
+            logActivityApi = { _, _, _, _, _, _ -> }, updateTaskChecklistApi = { _, _, _ -> com.notsen.core.model.Task() }, getTaskCommentsApi = { _, _ -> emptyList() }, addTaskCommentApi = { _, _, _ -> com.notsen.core.model.TaskComment() }, deleteTaskCommentApi = { _, _, _ -> }
         )
 
         coordinator.deleteBoard()
@@ -72,7 +72,7 @@ class BoardOperationCoordinatorTest {
             deleteBoardApi = { apiCalled = true },
             deleteColumnApi = { },
             updateColumnApi = { _, _ -> },
-            logActivityApi = { _, _, _, _, _, _ -> }, updateTaskChecklistApi = { _, _, _ -> com.notsen.core.model.Task() }
+            logActivityApi = { _, _, _, _, _, _ -> }, updateTaskChecklistApi = { _, _, _ -> com.notsen.core.model.Task() }, getTaskCommentsApi = { _, _ -> emptyList() }, addTaskCommentApi = { _, _, _ -> com.notsen.core.model.TaskComment() }, deleteTaskCommentApi = { _, _, _ -> }
         )
 
         coordinator.deleteBoard()
@@ -102,7 +102,7 @@ class BoardOperationCoordinatorTest {
             logActivityApi = { bId, action, _, eId, _, _ -> 
                 if (action == "column_deleted" && eId == "c1") logCalled = true
             },
-            updateTaskChecklistApi = { _, _, _ -> com.notsen.core.model.Task() }
+            updateTaskChecklistApi = { _, _, _ -> com.notsen.core.model.Task() }, getTaskCommentsApi = { _, _ -> emptyList() }, addTaskCommentApi = { _, _, _ -> com.notsen.core.model.TaskComment() }, deleteTaskCommentApi = { _, _, _ -> }
         )
 
         coordinator.deleteColumn("c1")
@@ -131,7 +131,7 @@ class BoardOperationCoordinatorTest {
             deleteColumnApi = { throw Exception("API Error") },
             updateColumnApi = { _, _ -> },
             logActivityApi = { _, _, _, _, _, _ -> logCalled = true },
-            updateTaskChecklistApi = { _, _, _ -> com.notsen.core.model.Task() }
+            updateTaskChecklistApi = { _, _, _ -> com.notsen.core.model.Task() }, getTaskCommentsApi = { _, _ -> emptyList() }, addTaskCommentApi = { _, _, _ -> com.notsen.core.model.TaskComment() }, deleteTaskCommentApi = { _, _, _ -> }
         )
 
         coordinator.deleteColumn("c1")
@@ -162,7 +162,7 @@ class BoardOperationCoordinatorTest {
             logActivityApi = { _, action, _, _, _, _ -> 
                 if (action == "column_renamed") logCalled = true
             },
-            updateTaskChecklistApi = { _, _, _ -> com.notsen.core.model.Task() }
+            updateTaskChecklistApi = { _, _, _ -> com.notsen.core.model.Task() }, getTaskCommentsApi = { _, _ -> emptyList() }, addTaskCommentApi = { _, _, _ -> com.notsen.core.model.TaskComment() }, deleteTaskCommentApi = { _, _, _ -> }
         )
 
         coordinator.renameColumn("c1", "New")
@@ -188,7 +188,7 @@ class BoardOperationCoordinatorTest {
             deleteBoardApi = { },
             deleteColumnApi = { },
             updateColumnApi = { _, _ -> throw Exception("API Error") },
-            logActivityApi = { _, _, _, _, _, _ -> }, updateTaskChecklistApi = { _, _, _ -> com.notsen.core.model.Task() }
+            logActivityApi = { _, _, _, _, _, _ -> }, updateTaskChecklistApi = { _, _, _ -> com.notsen.core.model.Task() }, getTaskCommentsApi = { _, _ -> emptyList() }, addTaskCommentApi = { _, _, _ -> com.notsen.core.model.TaskComment() }, deleteTaskCommentApi = { _, _, _ -> }
         )
 
         coordinator.renameColumn("c1", "New")

@@ -2,7 +2,7 @@ import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Task, BoardLabel } from '@/store/useBoardStore';
-import { GripVertical, AlignLeft, MessageSquare } from 'lucide-react';
+import { GripVertical, AlignLeft } from 'lucide-react';
 import styles from './Board.module.css';
 
 interface BoardCardProps {
@@ -39,7 +39,6 @@ export default function BoardCard({ task, boardLabels, isOverlay, isViewer = fal
   const allDone = totalItems > 0 && doneItems === totalItems;
   const visibleTags = (task.tags || []).slice(0, 3);
   const extraTags = (task.tags || []).length - visibleTags.length;
-  const commentCount = task.comments?.length ?? 0;
 
   if (isDragging && !isOverlay) {
     return <div ref={setNodeRef} style={style} className={`${styles.card} ${styles.cardDraggingPlaceholder}`} />;
@@ -101,12 +100,6 @@ export default function BoardCard({ task, boardLabels, isOverlay, isViewer = fal
             {task.description && (
               <div className={styles.badge} title="Açıklama var">
                 <AlignLeft size={14} />
-              </div>
-            )}
-            {commentCount > 0 && (
-              <div className={styles.badge} title={`${commentCount} yorum`}>
-                <MessageSquare size={14} />
-                <span>{commentCount}</span>
               </div>
             )}
             {task.dueDate && (

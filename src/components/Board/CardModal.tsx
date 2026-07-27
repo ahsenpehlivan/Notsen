@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Task, ChecklistItem, BoardLabel, TaskComment } from '@/store/useBoardStore';
+import { Task, ChecklistItem, BoardLabel } from '@/store/useBoardStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useMembers } from '@/hooks/api/useMembers';
 import { useTaskMutations } from '@/hooks/api/useBoardMutations';
+import { useTaskComments } from '@/hooks/api/useTaskComments';
 import { X, Trash2, Plus, CheckSquare, MessageSquare } from 'lucide-react';
 import styles from './Board.module.css';
 
@@ -31,9 +32,10 @@ export default function CardModal({ task, boardId, boardLabels, currentUserRole,
   const [tags, setTags] = useState<string[]>(task.tags || []);
   const [assignee, setAssignee] = useState(task.assignee || '');
   const [checklist, setChecklist] = useState<ChecklistItem[]>(task.checklist || []);
-  const [comments, setComments] = useState<TaskComment[]>(task.comments || []);
   const [newItemText, setNewItemText] = useState('');
   const [newCommentText, setNewCommentText] = useState('');
+
+  const { comments, isLoading: commentsLoading, addComment, deleteComment } = useTaskComments(task.id);
 
   const AVAILABLE_TAGS = boardLabels;
 
@@ -72,28 +74,17 @@ export default function CardModal({ task, boardId, boardLabels, currentUserRole,
     setTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
   };
 
-  const addComment = () => {
-    if (!newCommentText.trim() || isViewer || !user?.email) return;
-    const newComment: TaskComment = {
-      id: generateId(),
-      userEmail: user.email,
-      text: newCommentText.trim(),
-      createdAt: new Date().toISOString(),
-    };
-    const updated = [...comments, newComment];
-    setComments(updated);
-    setNewCommentText('');
-    updateTask.mutate({
-      id: task.id,
-      boardId,
-      title: title.trim(),
-      description: description.trim(),
-      dueDate,
-      tags,
-      assignee,
-      checklist,
-      comments: updated,
+  const handleAddComment = () => {
+    if (!newCommentText.trim() || isViewer || !user?.email || addComment.isPending) return;
+    addComment.mutate(newCommentText.trim(), {
+      onSuccess: () => setNewCommentText('')
     });
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    if (window.confirm('Bu yorumu silmek istediğinize emin misiniz?')) {
+      deleteComment.mutate(commentId);
+    }
   };
 
   const today = new Date().toISOString().split('T')[0];
@@ -111,7 +102,6 @@ export default function CardModal({ task, boardId, boardLabels, currentUserRole,
         tags,
         assignee,
         checklist,
-        comments,
       });
       onClose();
     }
@@ -296,22 +286,37 @@ export default function CardModal({ task, boardId, boardLabels, currentUserRole,
                 </label>
               </div>
               <div className={styles.commentsList}>
-                {comments.length === 0 && (
+                {commentsLoading && <p className={styles.commentsEmpty}>Yorumlar yükleniyor...</p>}
+                {!commentsLoading && comments.length === 0 && (
                   <p className={styles.commentsEmpty}>Henüz yorum yok.</p>
                 )}
-                {comments.map((c) => (
-                  <div key={c.id} className={styles.commentItem}>
-                    <div className={styles.commentMeta}>
-                      <span className={styles.commentAuthor}>{c.userEmail.split('@')[0]}</span>
-                      <time className={styles.commentTime}>
-                        {new Date(c.createdAt).toLocaleString('tr-TR', {
-                          day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
-                        })}
-                      </time>
+                {!commentsLoading && comments.map((c) => {
+                  const isCommentOwner = c.userEmail === user?.email;
+                  const canDelete = isCommentOwner || currentUserRole === 'owner';
+                  return (
+                    <div key={c.id} className={styles.commentItem}>
+                      <div className={styles.commentMeta}>
+                        <span className={styles.commentAuthor}>{c.userEmail.split('@')[0]}</span>
+                        <time className={styles.commentTime}>
+                          {new Date(c.createdAt).toLocaleString('tr-TR', {
+                            day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+                          })}
+                        </time>
+                      </div>
+                      <p className={styles.commentText}>{c.text}</p>
+                      {canDelete && !isViewer && (
+                         <button
+                           type="button"
+                           className={styles.checklistDeleteBtn}
+                           style={{position: 'absolute', top: '10px', right: '10px'}}
+                           onClick={() => handleDeleteComment(c.id)}
+                         >
+                           <Trash2 size={13} />
+                         </button>
+                      )}
                     </div>
-                    <p className={styles.commentText}>{c.text}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               {!isViewer && (
                 <div className={styles.checklistAddRow}>
@@ -323,15 +328,15 @@ export default function CardModal({ task, boardId, boardLabels, currentUserRole,
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
-                        addComment();
+                        handleAddComment();
                       }
                     }}
                   />
                   <button
                     type="button"
                     className={styles.checklistAddBtn}
-                    onClick={addComment}
-                    disabled={!newCommentText.trim()}
+                    onClick={handleAddComment}
+                    disabled={!newCommentText.trim() || addComment.isPending}
                   >
                     <Plus size={14} />
                   </button>

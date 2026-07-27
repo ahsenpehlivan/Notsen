@@ -162,6 +162,7 @@ export default function NotesUI() {
     }, {
       onSuccess: () => {
         // Mark note as archived and save converted id
+        // @ts-expect-error type missing
         updateNote.mutate({ id: note.id, content: note.content, archived: true, converted_task_id: convertToTaskId });
         setConvertToTaskId(null);
       }

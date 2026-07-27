@@ -34,7 +34,15 @@ fun TaskDetailSheet(
     onDismissRequest: () -> Unit,
     onSave: (title: String, desc: String, dueDate: String?, tags: List<String>, assignee: String?, onError: () -> Unit) -> Unit,
     onDelete: () -> Unit,
-    onChecklistMutation: (com.notsen.feature.boarddetail.domain.ChecklistMutation) -> Unit
+    onChecklistMutation: (com.notsen.feature.boarddetail.domain.ChecklistMutation) -> Unit,
+    comments: List<com.notsen.core.model.TaskComment>,
+    commentsLoading: Boolean,
+    commentsError: String?,
+    commentSaveInProgress: Boolean,
+    deletingCommentIds: Set<String>,
+    onAddComment: (String) -> Unit,
+    onDeleteComment: (String) -> Unit,
+    currentUserEmail: String?
 ) {
     var editTitle by remember { mutableStateOf(task.title) }
     var editDesc by remember { mutableStateOf(task.description) }
@@ -195,6 +203,23 @@ fun TaskDetailSheet(
                 isLoading = isLoading,
                 onMutation = onChecklistMutation,
                 modifier = Modifier.padding(vertical = NotsenTheme.spacing.md)
+            )
+
+            // Comments Section
+            com.notsen.feature.boarddetail.ui.comments.CommentsSection(
+                comments = comments,
+                isLoading = commentsLoading,
+                error = commentsError,
+                saveInProgress = commentSaveInProgress,
+                deletingCommentIds = deletingCommentIds,
+                canAddComment = canEdit,
+                canDeleteComment = { comment ->
+                    if (!canEdit) false
+                    else comment.userEmail == currentUserEmail || members.find { it.userEmail == currentUserEmail }?.role == com.notsen.core.model.PermissionRole.OWNER
+                },
+                onAddComment = onAddComment,
+                onDeleteComment = onDeleteComment,
+                modifier = Modifier.padding(bottom = NotsenTheme.spacing.md)
             )
 
             if (error != null) {

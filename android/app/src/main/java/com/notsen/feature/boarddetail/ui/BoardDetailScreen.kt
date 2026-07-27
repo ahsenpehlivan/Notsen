@@ -191,7 +191,15 @@ fun BoardDetailScreen(
             },
             onChecklistMutation = { mutation ->
                 viewModel.updateTaskChecklist(task.id, mutation)
-            }
+            },
+            comments = uiState.taskComments,
+            commentsLoading = uiState.commentsLoading,
+            commentsError = uiState.commentsError,
+            commentSaveInProgress = uiState.commentSaveInProgress,
+            deletingCommentIds = uiState.deletingCommentIds,
+            onAddComment = { content -> viewModel.addTaskComment(task.id, content) },
+            onDeleteComment = { commentId -> viewModel.deleteTaskComment(task.id, commentId) },
+            currentUserEmail = ""
         )
     }
 
@@ -432,6 +440,7 @@ fun BoardDetailScreen(
                                     onAddTaskClick = { columnIdForNewTask = column.id },
                                     onTaskClick = { task ->
                                         selectedTask = task
+                                        viewModel.fetchTaskComments(task.id)
                                     },
                                     onRenameColumnClick = {
                                         renameColumnTitle = column.title

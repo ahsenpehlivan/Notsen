@@ -79,7 +79,6 @@ export interface Task {
   tags?: string[];
   assignee?: string;
   checklist?: ChecklistItem[];
-  comments?: TaskComment[];
   position: number;
   _dbColumnId?: Id;
   _dbPosition?: number;

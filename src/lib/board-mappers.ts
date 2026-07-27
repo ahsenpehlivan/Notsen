@@ -55,7 +55,6 @@ export function mapTask(row: Record<string, unknown>): Task {
     tags: (row.tags as string[]) || [],
     assignee: (row.assignee as string) || '',
     checklist: (row.checklist as Task['checklist']) || [],
-    comments: (row.comments as Task['comments']) || [],
     position: row.position as number,
     _dbColumnId: row.column_id as string,
     _dbPosition: row.position as number,

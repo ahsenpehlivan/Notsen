@@ -47,7 +47,12 @@ data class BoardDetailUiState(
     val showActivityLogsSheet: Boolean = false,
     val error: String? = null,
     val isMemberActionLoading: Boolean = false,
-    val memberActionSuccess: String? = null
+    val memberActionSuccess: String? = null,
+    val taskComments: List<com.notsen.core.model.TaskComment> = emptyList(),
+    val commentsLoading: Boolean = false,
+    val commentsError: String? = null,
+    val commentSaveInProgress: Boolean = false,
+    val deletingCommentIds: Set<String> = emptySet()
 )
 
 @HiltViewModel
@@ -88,7 +93,10 @@ class BoardDetailViewModel @Inject constructor(
         },
         updateTaskChecklistApi = { bId, tId, checklist ->
             repository.updateTaskChecklist(bId, tId, checklist)
-        }
+        },
+        getTaskCommentsApi = { bId, tId -> repository.getTaskComments(bId, tId) },
+        addTaskCommentApi = { bId, tId, content -> repository.addTaskComment(bId, tId, content) },
+        deleteTaskCommentApi = { bId, tId, cId -> repository.deleteTaskComment(bId, tId, cId) }
     )
 
     init {
@@ -498,6 +506,24 @@ class BoardDetailViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.update { it.copy(isMemberActionLoading = false, error = extractErrorMessage(e, "Üye çıkarılamadı.")) }
             }
+        }
+    }
+
+    fun fetchTaskComments(taskId: String) {
+        viewModelScope.launch {
+            coordinator.fetchTaskComments(taskId)
+        }
+    }
+
+    fun addTaskComment(taskId: String, content: String) {
+        viewModelScope.launch {
+            coordinator.addTaskComment(taskId, content)
+        }
+    }
+
+    fun deleteTaskComment(taskId: String, commentId: String) {
+        viewModelScope.launch {
+            coordinator.deleteTaskComment(taskId, commentId)
         }
     }
 }

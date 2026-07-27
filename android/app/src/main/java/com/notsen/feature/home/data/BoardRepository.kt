@@ -2,9 +2,12 @@ package com.notsen.feature.home.data
 
 import com.notsen.core.model.Board
 import com.notsen.core.model.BoardMember
+import com.notsen.core.model.TaskComment
+import com.notsen.core.model.TaskCommentDto
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.rpc
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.notsen.core.network.SessionCoordinator
@@ -187,5 +190,35 @@ class BoardRepository @Inject constructor(
         }) {
             filter { eq("id", columnId) }
         }
+    } }
+
+    suspend fun getTaskComments(boardId: String, taskId: String): List<TaskComment> = sessionCoordinator.safeRequest { withContext(Dispatchers.IO) {
+        val dtos = supabaseClient.postgrest["task_comments"]
+            .select {
+                filter {
+                    eq("task_id", taskId)
+                    eq("board_id", boardId)
+                }
+            }.decodeList<TaskCommentDto>()
+
+        dtos.sortedBy { it.createdAt }.map { it.toDomainModel() }
+    } }
+
+    suspend fun addTaskComment(boardId: String, taskId: String, content: String): TaskComment = sessionCoordinator.safeRequest { withContext(Dispatchers.IO) {
+        if (content.trim().isEmpty()) {
+            throw Exception("Comment content cannot be empty")
+        }
+        val dto = supabaseClient.postgrest.rpc(
+            "add_task_comment_v1",
+            mapOf("p_task_id" to taskId, "p_content" to content.trim())
+        ).decodeAs<TaskCommentDto>()
+        dto.toDomainModel()
+    } }
+
+    suspend fun deleteTaskComment(boardId: String, taskId: String, commentId: String) = sessionCoordinator.safeRequest { withContext(Dispatchers.IO) {
+        supabaseClient.postgrest.rpc(
+            "delete_task_comment_v1",
+            mapOf("p_comment_id" to commentId)
+        )
     } }
 }
