@@ -45,13 +45,18 @@ export default function Login() {
     clearError();
     if (mode === 'signup') {
       await signUp(email, password);
-      if (!useAuthStore.getState().error) {
-        setSignUpDone(true);
+      const state = useAuthStore.getState();
+      if (!state.error) {
+        if (state.user) {
+          window.location.href = '/boards';
+        } else {
+          setSignUpDone(true);
+        }
       }
     } else {
       await signIn(email, password);
       if (!useAuthStore.getState().error) {
-        router.push('/boards');
+        window.location.href = '/boards';
       }
     }
   };

@@ -49,13 +49,17 @@ export default function DashboardLayout({
     setMounted(true);
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      if (!session?.user) {
+        window.location.href = '/login';
+      } else {
+        setUser(session.user);
+      }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
-      if (!session?.user) {
-        router.push('/login');
+      if (event === 'SIGNED_OUT') {
+        window.location.href = '/login';
       }
     });
 
@@ -75,11 +79,7 @@ export default function DashboardLayout({
     setActiveBoard(validLast ? lastId! : workspace.boards[0].id);
   }, [workspace, activeBoardId, setActiveBoard, user?.id]);
 
-  if (!mounted) {
-    return <LoadingSpinner />;
-  }
-
-  if (user && isLoading) {
+  if (!mounted || !user || isLoading) {
     return <LoadingSpinner />;
   }
 

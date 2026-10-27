@@ -17,7 +17,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value));
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           response = NextResponse.next({
             request,
           });
@@ -36,19 +36,39 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/boards') ||
     request.nextUrl.pathname.startsWith('/profile') ||
     request.nextUrl.pathname.startsWith('/tasks') ||
-    request.nextUrl.pathname.startsWith('/calendar');
+    request.nextUrl.pathname.startsWith('/calendar') ||
+    request.nextUrl.pathname.startsWith('/notes');
 
   if (!user && isProtectedPage) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    const redirectResponse = NextResponse.redirect(url);
+    response.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
+    });
+    return redirectResponse;
   }
 
   if (user && isAuthPage) {
-    return NextResponse.redirect(new URL('/boards', request.url));
+    const url = request.nextUrl.clone();
+    url.pathname = '/boards';
+    const redirectResponse = NextResponse.redirect(url);
+    response.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
+    });
+    return redirectResponse;
   }
 
   return response;
 }
 
 export const config = {
-  matcher: ['/boards/:path*', '/profile/:path*', '/tasks/:path*', '/calendar/:path*', '/login'],
+  matcher: [
+    '/boards/:path*',
+    '/profile/:path*',
+    '/tasks/:path*',
+    '/calendar/:path*',
+    '/notes/:path*',
+    '/login',
+  ],
 };

@@ -1,14 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
-
-function parseRequestCookies(request: Request) {
-  const header = request.headers.get('cookie');
-  if (!header) return [];
-  return header.split('; ').map((cookie) => {
-    const [name, ...rest] = cookie.split('=');
-    return { name, value: rest.join('=') };
-  });
-}
+import { cookies } from 'next/headers';
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -16,23 +8,26 @@ export async function GET(request: Request) {
   const next = requestUrl.searchParams.get('next') ?? '/boards';
 
   if (!code) {
-    return NextResponse.redirect(new URL('/boards', request.url));
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  const response = NextResponse.redirect(new URL(next, request.url));
-
+  const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {
-          return parseRequestCookies(request);
+          return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // Can be ignored
+          }
         },
       },
     }
@@ -41,8 +36,17 @@ export async function GET(request: Request) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
+    console.error('Exchange code error:', error);
     return NextResponse.redirect(new URL('/login?error=auth', request.url));
   }
 
-  return response;
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  const isLocalEnv = process.env.NODE_ENV === 'development';
+  if (isLocalEnv) {
+    return NextResponse.redirect(new URL(next, request.url));
+  } else if (forwardedHost) {
+    return NextResponse.redirect(`https://${forwardedHost}${next}`);
+  } else {
+    return NextResponse.redirect(new URL(next, request.url));
+  }
 }

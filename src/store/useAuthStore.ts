@@ -18,6 +18,28 @@ interface AuthState {
   clearError: () => void;
 }
 
+function formatAuthError(errorMsg: string): string {
+  if (errorMsg.includes('Invalid login credentials')) {
+    return 'E-posta veya şifre hatalı. Lütfen kontrol edip tekrar deneyin.';
+  }
+  if (errorMsg.includes('Email not confirmed')) {
+    return 'E-posta adresiniz henüz doğrulanmamış. Lütfen gelen kutunuzdaki aktivasyon bağlantısına tıklayın.';
+  }
+  if (errorMsg.includes('User already registered') || errorMsg.includes('already registered')) {
+    return 'Bu e-posta adresiyle zaten kayıtlı bir hesap var. Lütfen giriş yapın.';
+  }
+  if (errorMsg.includes('Password should be at least')) {
+    return 'Şifre en az 6 karakter olmalıdır.';
+  }
+  if (errorMsg.includes('email_address_invalid') || errorMsg.includes('is invalid')) {
+    return 'Lütfen geçerli bir e-posta adresi girin.';
+  }
+  if (errorMsg.includes('rate limit')) {
+    return 'Çok fazla istek gönderildi. Lütfen bir süre sonra tekrar deneyin.';
+  }
+  return errorMsg;
+}
+
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isLoading: false,
@@ -29,12 +51,11 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   signUp: async (email, password) => {
     set({ isLoading: true, error: null });
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) {
-      set({ error: error.message, isLoading: false });
+      set({ error: formatAuthError(error.message), isLoading: false });
     } else {
-      // Supabase e-posta doğrulaması olmadan otomatik giriş yapar
-      set({ isLoading: false });
+      set({ user: data.session?.user ?? data.user ?? null, isLoading: false });
     }
   },
 
@@ -42,7 +63,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true, error: null });
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      set({ error: error.message, isLoading: false });
+      set({ error: formatAuthError(error.message), isLoading: false });
     } else {
       set({ user: data.user, isLoading: false });
     }
