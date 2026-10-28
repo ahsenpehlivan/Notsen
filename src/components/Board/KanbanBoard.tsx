@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -10,11 +10,9 @@ import {
   useSensors,
   DragStartEvent,
   DragOverEvent,
-  DragEndEvent,
 } from '@dnd-kit/core';
-import { SortableContext, arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { useBoardStore, Task } from '@/store/useBoardStore';
-import { useMobileSidebar } from '@/contexts/MobileSidebarContext';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useWorkspace } from '@/hooks/api/useWorkspace';
 import { useMembers } from '@/hooks/api/useMembers';
@@ -31,6 +29,9 @@ import ColumnReorderModal from './ColumnReorderModal';
 import InviteModal from './InviteModal';
 import LabelsManagerModal from './LabelsManagerModal';
 import ActivityPanel from './ActivityPanel';
+
+const EMPTY_TASKS: Task[] = [];
+
 export default function KanbanBoard() {
   const { activeBoardId, setIsDragging } = useBoardStore();
   const user = useAuthStore((s) => s.user);
@@ -40,7 +41,7 @@ export default function KanbanBoard() {
   const columns = workspace?.columns ?? [];
   const tasks = workspace?.tasks ?? [];
 
-  const activeBoard = boards.find((b) => b.id === activeBoardId);
+  const activeBoard = useMemo(() => boards.find((b) => b.id === activeBoardId), [boards, activeBoardId]);
   const { currentUserRole } = useMembers(activeBoardId, activeBoard);
 
   const { updateBoardTitle } = useBoardMutations();
@@ -71,32 +72,53 @@ export default function KanbanBoard() {
   );
 
   const isViewer = currentUserRole === 'viewer';
-  const boardColumns = columns.filter((c) => c.boardId === activeBoardId);
-  const boardTasks = tasks.filter((t) => t.boardId === activeBoardId);
+  const boardColumns = useMemo(() => columns.filter((c) => c.boardId === activeBoardId), [columns, activeBoardId]);
+  const boardTasks = useMemo(() => tasks.filter((t) => t.boardId === activeBoardId), [tasks, activeBoardId]);
 
-  const filteredTasks = boardTasks.filter((task) => {
+  const filteredTasks = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    if (q && !task.title.toLowerCase().includes(q) && !task.description?.toLowerCase().includes(q)) return false;
-    if (filterLabels.length > 0 && !filterLabels.every((l) => (task.tags || []).includes(l))) return false;
-    if (filterAssignee && task.assignee !== filterAssignee) return false;
-    return true;
-  });
+    if (!q && filterLabels.length === 0 && !filterAssignee) return boardTasks;
+
+    return boardTasks.filter((task) => {
+      if (q && !task.title.toLowerCase().includes(q) && !task.description?.toLowerCase().includes(q)) return false;
+      if (filterLabels.length > 0 && !filterLabels.every((l) => (task.tags || []).includes(l))) return false;
+      if (filterAssignee && task.assignee !== filterAssignee) return false;
+      return true;
+    });
+  }, [boardTasks, searchQuery, filterLabels, filterAssignee]);
+
+  const tasksByColumn = useMemo(() => {
+    const map: Record<string, Task[]> = {};
+    for (const col of boardColumns) {
+      map[col.id] = [];
+    }
+    for (const task of filteredTasks) {
+      if (!map[task.columnId]) {
+        map[task.columnId] = [];
+      }
+      map[task.columnId].push(task);
+    }
+    return map;
+  }, [boardColumns, filteredTasks]);
 
   const hasActiveFilter = searchQuery.trim() !== '' || filterLabels.length > 0 || filterAssignee !== '';
   const filteredCount = boardTasks.length - filteredTasks.length;
-  const allAssignees = Array.from(new Set(boardTasks.map((t) => t.assignee).filter(Boolean))) as string[];
-  const boardLabels = activeBoard?.labels || [];
+  const allAssignees = useMemo(
+    () => Array.from(new Set(boardTasks.map((t) => t.assignee).filter(Boolean))) as string[],
+    [boardTasks]
+  );
+  const boardLabels = useMemo(() => activeBoard?.labels || [], [activeBoard?.labels]);
 
-  const handleDragStart = (event: DragStartEvent) => {
+  const handleDragStart = useCallback((event: DragStartEvent) => {
     if (isViewer) return;
     const task = boardTasks.find((t) => t.id === event.active.id);
     if (task) {
       setActiveTask(task);
       setIsDragging(true);
     }
-  };
+  }, [isViewer, boardTasks, setIsDragging]);
 
-  const handleDragOver = (event: DragOverEvent) => {
+  const handleDragOver = useCallback((event: DragOverEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     if (active.data.current?.type !== 'Task') return;
@@ -114,8 +136,11 @@ export default function KanbanBoard() {
 
         const dragged = allTasks[activeTaskIndex];
         const overTask = allTasks[overTaskIndex];
-        const newTasks = [...allTasks];
+        if (activeTaskIndex === overTaskIndex && dragged.columnId === overTask.columnId) {
+          return allTasks;
+        }
 
+        const newTasks = [...allTasks];
         if (dragged.columnId !== overTask.columnId) {
           newTasks[activeTaskIndex] = { ...dragged, columnId: overTask.columnId };
         }
@@ -124,17 +149,21 @@ export default function KanbanBoard() {
     }
 
     if (isOverColumn) {
+      const targetColumnId = String(overId);
       updateTasks((allTasks) => {
         const activeTaskIndex = allTasks.findIndex((t) => t.id === activeId);
         if (activeTaskIndex === -1) return allTasks;
+        const dragged = allTasks[activeTaskIndex];
+        if (dragged.columnId === targetColumnId) return allTasks;
+
         const newTasks = [...allTasks];
-        newTasks[activeTaskIndex] = { ...newTasks[activeTaskIndex], columnId: String(overId) };
+        newTasks[activeTaskIndex] = { ...dragged, columnId: targetColumnId };
         return arrayMove(newTasks, activeTaskIndex, newTasks.length - 1);
       });
     }
-  };
+  }, [updateTasks]);
 
-  const handleDragEnd = () => {
+  const handleDragEnd = useCallback(() => {
     setActiveTask(null);
     setIsDragging(false);
     if (isViewer || !activeBoardId) return;
@@ -144,7 +173,7 @@ export default function KanbanBoard() {
       tasks: getTasks(),
       columns: getColumns(),
     });
-  };
+  }, [isViewer, activeBoardId, setIsDragging, syncTaskOrder, getTasks, getColumns]);
 
   const handleAddColumn = (e: React.FormEvent) => {
     e.preventDefault();
@@ -332,7 +361,7 @@ export default function KanbanBoard() {
               <BoardColumn
                 key={col.id}
                 column={col}
-                tasks={filteredTasks.filter((t) => t.columnId === col.id)}
+                tasks={tasksByColumn[col.id] || EMPTY_TASKS}
                 boardLabels={boardLabels}
                 currentUserRole={currentUserRole}
                 onEditTask={setEditingTask}

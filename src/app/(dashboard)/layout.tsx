@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useBoardStore } from '@/store/useBoardStore';
 import { useActiveBoard } from '@/hooks/useActiveBoard';
@@ -42,7 +42,7 @@ export default function DashboardLayout({
   const router = useRouter();
 
   const { data: workspace, isLoading, isError } = useWorkspace(user?.id ?? null, user?.email ?? null);
-  const boardIds = workspace?.boards.map((b) => b.id) ?? [];
+  const boardIds = useMemo(() => workspace?.boards.map((b) => b.id) ?? [], [workspace?.boards]);
 
   useRealtimeSync(boardIds);
 

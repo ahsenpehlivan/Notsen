@@ -3,17 +3,18 @@
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useMobileSidebar } from '@/contexts/MobileSidebarContext';
+import { THEMES, useBoardStore } from '@/store/useBoardStore';
 import { useWorkspace } from '@/hooks/api/useWorkspace';
 import { getWorkspaceStats } from '@/lib/workspace-stats';
 import { clearLastBoardId } from '@/lib/preferences';
 import { toast } from '@/lib/toast';
-import { User, Shield, BarChart3, Calendar, Mail, AlertTriangle, CheckSquare, Clock } from 'lucide-react';
+import { User, Shield, BarChart3, Calendar, Mail, AlertTriangle, CheckSquare, Clock, Palette } from 'lucide-react';
 import styles from './Profile.module.css';
 
 export default function ProfilePage() {
   const router = useRouter();
   const { user, logout, linkGoogle, linkGitHub, deleteAccount, isLoading } = useAuthStore();
+  const { theme, setTheme } = useBoardStore();
   const { data: workspace, isLoading: workspaceLoading } = useWorkspace(user?.id ?? null, user?.email ?? null);
 
   const stats = useMemo(
@@ -61,7 +62,7 @@ export default function ProfilePage() {
         <div className={styles.headerTop}>
           <h1>Profilim</h1>
         </div>
-        <p>Hesap bilgilerinizi ve istatistiklerinizi buradan görüntüleyebilirsiniz.</p>
+        <p>Hesap bilgilerinizi, görünüm temalarınızı ve istatistiklerinizi buradan yönetebilirsiniz.</p>
       </div>
 
       <div className={styles.grid}>
@@ -102,6 +103,50 @@ export default function ProfilePage() {
               <div className={styles.infoLabel}><Calendar size={12} style={{ display: 'inline', marginRight: 4 }} />Son Giriş</div>
               <div className={styles.infoValue}>{lastSignIn}</div>
             </div>
+          </div>
+        </div>
+
+        <div className={styles.card} style={{ gridColumn: '1 / -1' }}>
+          <div className={styles.cardHeader}>
+            <div className={styles.cardIcon}><Palette size={18} /></div>
+            <h2>Görünüm & Temalar ({THEMES.length} Tema)</h2>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(135px, 1fr))', gap: '0.6rem' }}>
+            {THEMES.map((t) => {
+              const isActive = theme === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setTheme(t.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.6rem',
+                    padding: '0.55rem 0.75rem',
+                    borderRadius: 'var(--radius-md)',
+                    background: isActive ? 'var(--accent-subtle)' : 'var(--bg-tertiary)',
+                    border: isActive ? '1.5px solid var(--accent-primary)' : '1px solid var(--glass-border-subtle)',
+                    color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    fontWeight: isActive ? 700 : 500,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 18,
+                      height: 18,
+                      borderRadius: '50%',
+                      background: t.swatch,
+                      border: '1.5px solid rgba(255,255,255,0.2)',
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 

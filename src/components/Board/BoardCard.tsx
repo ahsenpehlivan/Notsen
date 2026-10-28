@@ -10,10 +10,10 @@ interface BoardCardProps {
   boardLabels: BoardLabel[];
   isOverlay?: boolean;
   isViewer?: boolean;
-  onEdit?: () => void;
+  onEdit?: (task: Task) => void;
 }
 
-export default function BoardCard({ task, boardLabels, isOverlay, isViewer = false, onEdit }: BoardCardProps) {
+const BoardCard = React.memo(function BoardCard({ task, boardLabels, isOverlay, isViewer = false, onEdit }: BoardCardProps) {
   const {
     setNodeRef,
     attributes,
@@ -50,7 +50,7 @@ export default function BoardCard({ task, boardLabels, isOverlay, isViewer = fal
       style={style}
       className={`${styles.card} ${isOverlay ? styles.cardOverlay : ''}`}
       onClick={(e) => {
-        if (!(e.target as HTMLElement).closest(`.${styles.dragHandle}`)) onEdit?.();
+        if (!(e.target as HTMLElement).closest(`.${styles.dragHandle}`)) onEdit?.(task);
       }}
     >
       {!isViewer && (
@@ -117,4 +117,6 @@ export default function BoardCard({ task, boardLabels, isOverlay, isViewer = fal
       </div>
     </div>
   );
-}
+});
+
+export default BoardCard;

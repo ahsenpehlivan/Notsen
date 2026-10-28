@@ -114,7 +114,7 @@
   border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
-  transition: all var(--transition-normal);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
@@ -126,7 +126,6 @@
 .columnOver {
   border-color: var(--accent-primary) !important;
   box-shadow: 0 0 0 2px var(--accent-glow), 0 8px 24px rgba(0,0,0,0.3) !important;
-  transform: scale(1.01);
 }
 
 /* ── Column Header ───────────────────────────────────────── */
@@ -215,23 +214,10 @@
   overflow: hidden;
 }
 
-/* shimmer on hover */
-.card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.04) 50%, transparent 60%);
-  transform: translateX(-100%);
-  transition: transform 0.5s ease;
-}
-
-.card:hover::after { transform: translateX(100%); }
-
 @media (hover: hover) {
   .card:hover {
     background: var(--bg-hover);
     border-color: var(--accent-primary);
-    transform: translateY(-3px);
     box-shadow: 0 6px 20px rgba(0,0,0,0.25), 0 0 0 1px var(--accent-subtle);
   }
 }

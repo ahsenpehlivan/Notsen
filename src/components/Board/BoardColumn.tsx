@@ -16,7 +16,7 @@ interface BoardColumnProps {
   isFiltered?: boolean;
 }
 
-export default function BoardColumn({ column, tasks, boardLabels, currentUserRole, onEditTask, isFiltered }: BoardColumnProps) {
+const BoardColumn = React.memo(function BoardColumn({ column, tasks, boardLabels, currentUserRole, onEditTask, isFiltered }: BoardColumnProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -98,7 +98,7 @@ export default function BoardColumn({ column, tasks, boardLabels, currentUserRol
       <div className={styles.columnBody}>
         <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
           {tasks.map((task) => (
-            <BoardCard key={task.id} task={task} boardLabels={boardLabels} isViewer={isViewer} onEdit={() => onEditTask(task)} />
+            <BoardCard key={task.id} task={task} boardLabels={boardLabels} isViewer={isViewer} onEdit={onEditTask} />
           ))}
         </SortableContext>
       </div>
@@ -133,4 +133,6 @@ export default function BoardColumn({ column, tasks, boardLabels, currentUserRol
       )}
     </div>
   );
-}
+});
+
+export default BoardColumn;

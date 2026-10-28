@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Plus, LayoutDashboard, CheckSquare, Trash2, GripVertical, Calendar } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useWorkspace } from '@/hooks/api/useWorkspace';
 import { useActiveBoard } from '@/hooks/useActiveBoard';
 import { useBoardMutations } from '@/hooks/api/useBoardMutations';
-import { Board, ThemeName, useBoardStore } from '@/store/useBoardStore';
+import { Board, THEMES, useBoardStore } from '@/store/useBoardStore';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -18,12 +18,12 @@ import boardStyles from '@/components/Sidebar/Sidebar.module.css';
 interface SortableBoardItemProps {
   board: Board;
   isActive: boolean;
-  onSelect: () => void;
-  onDelete: (e: React.MouseEvent) => void;
+  onSelect: (boardId: string) => void;
+  onDelete: (board: Board, e: React.MouseEvent) => void;
   showDelete: boolean;
 }
 
-function SortableBoardItem({ board, isActive, onSelect, onDelete, showDelete }: SortableBoardItemProps) {
+const SortableBoardItem = React.memo(function SortableBoardItem({ board, isActive, onSelect, onDelete, showDelete }: SortableBoardItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: board.id });
 
   const style = {
@@ -41,18 +41,18 @@ function SortableBoardItem({ board, isActive, onSelect, onDelete, showDelete }: 
       <div {...attributes} {...listeners} className={boardStyles.boardDragHandle}>
         <GripVertical size={14} />
       </div>
-      <button className={boardStyles.boardLink} onClick={onSelect} style={{ border: 'none', background: 'transparent', flex: 1, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'inherit' }}>
+      <button className={boardStyles.boardLink} onClick={() => onSelect(board.id)} style={{ border: 'none', background: 'transparent', flex: 1, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'inherit' }}>
         <LayoutDashboard size={16} />
         <span className={boardStyles.boardTitle} style={{ fontSize: '0.85rem' }}>{board.title}</span>
       </button>
       {showDelete && (
-        <button className={boardStyles.deleteBtn} onClick={onDelete} title="Panoyu Sil">
+        <button className={boardStyles.deleteBtn} onClick={(e) => onDelete(board, e)} title="Panoyu Sil">
           <Trash2 size={14} />
         </button>
       )}
     </li>
   );
-}
+});
 
 export default function KanbanSidebar() {
   const router = useRouter();
@@ -66,14 +66,10 @@ export default function KanbanSidebar() {
 
   const [isTemplateOpen, setIsTemplateOpen] = useState(false);
 
-  const THEMES: { id: ThemeName; label: string; swatch: string }[] = [
-    { id: 'charcoal', label: 'Charcoal', swatch: '#221c1c' },
-    { id: 'midnight', label: 'Midnight', swatch: '#161B22' },
-    { id: 'deep-ocean', label: 'Deep Ocean', swatch: '#0A1128' },
-    { id: 'nordic', label: 'Nordic', swatch: '#88C0D0' },
-  ];
+  const boardIds = useMemo(() => boards.map((b) => b.id), [boards]);
+  const activeThemeLabel = useMemo(() => THEMES.find((t) => t.id === theme)?.label ?? 'Charcoal', [theme]);
 
-  const handleCreateBoard = (title: string, templateId: string) => {
+  const handleCreateBoard = useCallback((title: string, templateId: string) => {
     addBoard.mutate({ title, templateId }, {
       onSuccess: ({ board }) => {
         setIsTemplateOpen(false);
@@ -81,20 +77,32 @@ export default function KanbanSidebar() {
         router.push(`/boards/${board.id}`);
       },
     });
-  };
+  }, [addBoard, setActiveBoard, router]);
+
+  const handleSelectBoard = useCallback((boardId: string) => {
+    setActiveBoard(boardId);
+    router.push(`/boards/${boardId}`);
+  }, [setActiveBoard, router]);
+
+  const handleDeleteBoard = useCallback((board: Board, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm(`"${board.title}" panosunu silmek istediğinize emin misiniz?`)) {
+      deleteBoard.mutate(board.id);
+    }
+  }, [deleteBoard]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const oldIndex = boards.findIndex((b) => b.id === active.id);
     const newIndex = boards.findIndex((b) => b.id === over.id);
     reorderBoards.mutate(arrayMove(boards, oldIndex, newIndex));
-  };
+  }, [boards, reorderBoards]);
 
   return (
     <aside className={styles.sidebar}>
@@ -119,31 +127,23 @@ export default function KanbanSidebar() {
 
       <div className={styles.sidebarHeader} style={{ marginTop: '1rem', borderTop: '1px solid var(--glass-border-subtle)', paddingTop: '1rem' }}>
         <span>Panolarım ({boards.length})</span>
-        <button style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }} onClick={() => setIsTemplateOpen(true)}>
+        <button style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }} onClick={() => setIsTemplateOpen(true)} title="Yeni Pano Oluştur">
           <Plus size={16} />
         </button>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 0.5rem' }}>
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={boards.map((b) => b.id)} strategy={verticalListSortingStrategy}>
+          <SortableContext items={boardIds} strategy={verticalListSortingStrategy}>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
               {boards.map((board) => (
                 <SortableBoardItem
                   key={board.id}
                   board={board}
                   isActive={board.id === activeBoardId && pathname.startsWith('/boards')}
-                  onSelect={() => {
-                    setActiveBoard(board.id);
-                    router.push(`/boards/${board.id}`);
-                  }}
+                  onSelect={handleSelectBoard}
                   showDelete={boards.length > 1}
-                  onDelete={(e) => {
-                    e.stopPropagation();
-                    if (window.confirm(`"${board.title}" panosunu silmek istediğinize emin misiniz?`)) {
-                      deleteBoard.mutate(board.id);
-                    }
-                  }}
+                  onDelete={handleDeleteBoard}
                 />
               ))}
             </ul>
@@ -151,22 +151,33 @@ export default function KanbanSidebar() {
         </DndContext>
       </div>
 
-      <div style={{ padding: '1rem', borderTop: '1px solid var(--glass-border-subtle)' }}>
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Temalar</div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          {THEMES.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => {
-                setTheme(t.id);
-                document.documentElement.setAttribute('data-theme', t.id);
-              }}
-              style={{
-                width: 24, height: 24, borderRadius: '50%', background: t.swatch, border: theme === t.id ? '2px solid var(--accent-primary)' : '2px solid transparent', cursor: 'pointer'
-              }}
-              title={t.label}
-            />
-          ))}
+      <div style={{ padding: '0.85rem 1rem', borderTop: '1px solid var(--glass-border-subtle)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.55rem' }}>
+          <span>Temalar ({THEMES.length})</span>
+          <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{activeThemeLabel}</span>
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
+          {THEMES.map((t) => {
+            const isActive = theme === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTheme(t.id)}
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: '50%',
+                  background: t.swatch,
+                  border: isActive ? '2px solid var(--accent-primary)' : '1.5px solid var(--glass-border-subtle)',
+                  boxShadow: isActive ? '0 0 0 2px var(--accent-glow)' : 'none',
+                  transform: isActive ? 'scale(1.12)' : 'scale(1)',
+                  cursor: 'pointer',
+                  padding: 0,
+                }}
+                title={t.label}
+              />
+            );
+          })}
         </div>
       </div>
 
