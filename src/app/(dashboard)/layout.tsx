@@ -33,6 +33,7 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const [mounted, setMounted] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const pathname = usePathname();
 
   const { theme } = useBoardStore();
@@ -48,23 +49,26 @@ export default function DashboardLayout({
   useEffect(() => {
     setMounted(true);
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session?.user) {
-        window.location.href = '/login';
-      } else {
-        setUser(session.user);
+    supabase.auth.getUser().then(({ data: { user: authUser } }) => {
+      if (authUser) {
+        setUser(authUser);
       }
+      setAuthChecked(true);
+    }).catch(() => {
+      setAuthChecked(true);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      if (event === 'SIGNED_OUT') {
+      if (session?.user) {
+        setUser(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
         window.location.href = '/login';
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [setUser, router]);
+  }, [setUser]);
 
   useEffect(() => {
     if (mounted) {
@@ -79,7 +83,11 @@ export default function DashboardLayout({
     setActiveBoard(validLast ? lastId! : workspace.boards[0].id);
   }, [workspace, activeBoardId, setActiveBoard, user?.id]);
 
-  if (!mounted || !user || isLoading) {
+  if (!mounted || !authChecked) {
+    return <LoadingSpinner />;
+  }
+
+  if (user && isLoading) {
     return <LoadingSpinner />;
   }
 
