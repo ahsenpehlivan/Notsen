@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Notsen
 
-## Getting Started
+![Next.js](https://img.shields.io/badge/Next.js-Web%20App-000000?logo=nextdotjs&logoColor=white) ![Kotlin](https://img.shields.io/badge/Kotlin-Android-7F52FF?logo=kotlin&logoColor=white) ![Supabase](https://img.shields.io/badge/Supabase-Backend-3FCF8E?logo=supabase&logoColor=white)
 
-First, run the development server:
+A productivity project for organizing boards, tasks, and quick notes across web and Android. The repository contains a **Next.js/TypeScript web app**, a **Kotlin/Jetpack Compose Android app**, and Supabase database scripts.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Highlights
+
+- Boards and task workflows with drag-and-drop interactions
+- Quick notes, task views, a calendar, and a "My Day" area
+- Account and session flows backed by Supabase
+- Android feature modules for boards, notes, My Day, and profile screens
+
+## Stack
+
+| Layer | Technologies |
+| --- | --- |
+| Web | Next.js, React, TypeScript |
+| Android | Kotlin, Jetpack Compose, Navigation Compose |
+| Data and auth | Supabase, PostgreSQL, Supabase Auth |
+
+## Project layout
+
+```text
+src/        Next.js pages, components, hooks, and app logic
+android/    Native Android application
+supabase/   Database migrations
+docs/       Project notes
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Run the web app
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Copy `.env.example` to `.env.local` and add your Supabase project URL and anon key.
+2. Install dependencies and start the development server:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm install
+npm run dev
+```
 
-## Learn More
+Open [http://localhost:3000](http://localhost:3000). Backend features require a compatible Supabase project and the repository's database setup.
 
-To learn more about Next.js, take a look at the following resources:
+## Build the Android app
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Open `android/` in Android Studio. The Android build reads `SUPABASE_URL` and `SUPABASE_ANON_KEY` from `android/local.properties`. After setting those values, sync Gradle and build or run the app from Android Studio.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+> The web and Android clients share the same product idea, but their feature coverage can differ. Explore each client separately.
